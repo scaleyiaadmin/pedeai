@@ -7,6 +7,11 @@ export interface Product {
   category: string;
   station: 'bar' | 'kitchen';
   stock: number;
+  description?: string;
+  imageUrl?: string;
+  isActive: boolean;
+  minStock?: number;
+  costPrice?: number;
 }
 
 export interface OrderItem {
@@ -38,8 +43,41 @@ export interface Customer {
   id: string;
   name: string;
   phone: string;
+  email?: string;
   visits: number;
   lastVisit: Date;
+  totalSpent: number;
+  tags: string[];
+  notes?: string;
+  birthday?: Date;
+}
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  productName: string;
+  type: 'in' | 'out' | 'adjustment';
+  quantity: number;
+  reason: string;
+  date: Date;
+}
+
+export interface Printer {
+  id: string;
+  name: string;
+  type: 'bar' | 'kitchen' | 'receipt';
+  ipAddress: string;
+  isActive: boolean;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  message: string;
+  targetTags: string[];
+  scheduledDate?: Date;
+  status: 'draft' | 'scheduled' | 'sent';
+  sentCount?: number;
 }
 
 interface UndoAction {
@@ -51,6 +89,19 @@ interface UndoAction {
 interface AppSettings {
   totalTables: number;
   flashingEnabled: boolean;
+  restaurantName: string;
+  openingTime: string;
+  closingTime: string;
+  autoCloseTable: boolean;
+  soundEnabled: boolean;
+  lowStockAlert: number;
+  criticalStockAlert: number;
+  acceptPix: boolean;
+  acceptCard: boolean;
+  acceptCash: boolean;
+  serviceFee: number;
+  whatsappNumber: string;
+  printers: Printer[];
 }
 
 interface AppContextType {
@@ -73,6 +124,15 @@ interface AppContextType {
   closeTable: (tableId: number) => void;
   addItemToTable: (tableId: number, item: OrderItem) => void;
   customers: Customer[];
+  addCustomer: (customer: Omit<Customer, 'id'>) => void;
+  updateCustomer: (id: string, updates: Partial<Customer>) => void;
+  deleteCustomer: (id: string) => void;
+  stockMovements: StockMovement[];
+  addStockMovement: (movement: Omit<StockMovement, 'id' | 'date'>) => void;
+  campaigns: Campaign[];
+  addCampaign: (campaign: Omit<Campaign, 'id'>) => void;
+  updateCampaign: (id: string, updates: Partial<Campaign>) => void;
+  deleteCampaign: (id: string) => void;
   undoAction: UndoAction | null;
   performUndo: () => void;
   clearUndo: () => void;
@@ -83,25 +143,59 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const initialProducts: Product[] = [
-  { id: '1', name: 'Cerveja Pilsen', price: 12.00, category: 'Bebidas', station: 'bar', stock: 100 },
-  { id: '2', name: 'Caipirinha', price: 18.00, category: 'Bebidas', station: 'bar', stock: 50 },
-  { id: '3', name: 'Água Mineral', price: 5.00, category: 'Bebidas', station: 'bar', stock: 80 },
-  { id: '4', name: 'Picanha Grelhada', price: 89.00, category: 'Pratos', station: 'kitchen', stock: 20 },
-  { id: '5', name: 'Fritas Especiais', price: 28.00, category: 'Porções', station: 'kitchen', stock: 30 },
-  { id: '6', name: 'Salada Caesar', price: 35.00, category: 'Saladas', station: 'kitchen', stock: 25 },
+  { id: '1', name: 'Cerveja Pilsen', price: 12.00, category: 'Bebidas', station: 'bar', stock: 100, isActive: true, minStock: 20, costPrice: 5.00, description: 'Cerveja gelada 600ml' },
+  { id: '2', name: 'Caipirinha', price: 18.00, category: 'Bebidas', station: 'bar', stock: 50, isActive: true, minStock: 10, costPrice: 6.00, description: 'Caipirinha de limão tradicional' },
+  { id: '3', name: 'Água Mineral', price: 5.00, category: 'Bebidas', station: 'bar', stock: 80, isActive: true, minStock: 30, costPrice: 1.50 },
+  { id: '4', name: 'Picanha Grelhada', price: 89.00, category: 'Pratos', station: 'kitchen', stock: 20, isActive: true, minStock: 5, costPrice: 45.00, description: 'Picanha 400g com acompanhamentos' },
+  { id: '5', name: 'Fritas Especiais', price: 28.00, category: 'Porções', station: 'kitchen', stock: 30, isActive: true, minStock: 10, costPrice: 8.00 },
+  { id: '6', name: 'Salada Caesar', price: 35.00, category: 'Saladas', station: 'kitchen', stock: 25, isActive: true, minStock: 8, costPrice: 12.00 },
 ];
 
 const initialCustomers: Customer[] = [
-  { id: '1', name: 'João Silva', phone: '(11) 99999-1234', visits: 12, lastVisit: new Date('2024-01-10') },
-  { id: '2', name: 'Maria Santos', phone: '(11) 98888-5678', visits: 8, lastVisit: new Date('2024-01-12') },
-  { id: '3', name: 'Carlos Oliveira', phone: '(11) 97777-9012', visits: 5, lastVisit: new Date('2024-01-08') },
+  { id: '1', name: 'João Silva', phone: '(11) 99999-1234', email: 'joao@email.com', visits: 12, lastVisit: new Date('2024-01-10'), totalSpent: 890.00, tags: ['VIP', 'Frequente'], notes: 'Prefere mesa próxima à janela' },
+  { id: '2', name: 'Maria Santos', phone: '(11) 98888-5678', email: 'maria@email.com', visits: 8, lastVisit: new Date('2024-01-12'), totalSpent: 520.00, tags: ['Frequente'], birthday: new Date('1990-05-15') },
+  { id: '3', name: 'Carlos Oliveira', phone: '(11) 97777-9012', visits: 5, lastVisit: new Date('2024-01-08'), totalSpent: 280.00, tags: ['Novo'] },
+];
+
+const initialCampaigns: Campaign[] = [
+  { id: '1', name: 'Promoção Happy Hour', message: 'Aproveite 50% de desconto em drinks das 17h às 19h!', targetTags: ['Frequente'], status: 'sent', sentCount: 45 },
+  { id: '2', name: 'Aniversariantes do Mês', message: 'Parabéns! Ganhe uma sobremesa grátis no seu aniversário!', targetTags: ['VIP'], status: 'scheduled', scheduledDate: new Date('2024-02-01') },
+];
+
+const initialStockMovements: StockMovement[] = [
+  { id: '1', productId: '1', productName: 'Cerveja Pilsen', type: 'in', quantity: 50, reason: 'Reposição de estoque', date: new Date('2024-01-10') },
+  { id: '2', productId: '4', productName: 'Picanha Grelhada', type: 'out', quantity: 5, reason: 'Vendas do dia', date: new Date('2024-01-11') },
+];
+
+const initialPrinters: Printer[] = [
+  { id: '1', name: 'Impressora Bar', type: 'bar', ipAddress: '192.168.1.100', isActive: true },
+  { id: '2', name: 'Impressora Cozinha', type: 'kitchen', ipAddress: '192.168.1.101', isActive: true },
+  { id: '3', name: 'Impressora Caixa', type: 'receipt', ipAddress: '192.168.1.102', isActive: true },
 ];
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [settings, setSettings] = useState<AppSettings>({ totalTables: 12, flashingEnabled: true });
+  const [settings, setSettings] = useState<AppSettings>({
+    totalTables: 12,
+    flashingEnabled: true,
+    restaurantName: 'Meu Restaurante',
+    openingTime: '11:00',
+    closingTime: '23:00',
+    autoCloseTable: true,
+    soundEnabled: true,
+    lowStockAlert: 15,
+    criticalStockAlert: 5,
+    acceptPix: true,
+    acceptCard: true,
+    acceptCash: true,
+    serviceFee: 10,
+    whatsappNumber: '',
+    printers: initialPrinters,
+  });
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [customers] = useState<Customer[]>(initialCustomers);
+  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
+  const [stockMovements, setStockMovements] = useState<StockMovement[]>(initialStockMovements);
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [filter, setFilter] = useState<'all' | 'bar' | 'kitchen'>('all');
 
@@ -117,7 +211,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [tables, setTables] = useState<Table[]>(() => generateTables(settings.totalTables));
 
-  // Generate some initial sample orders
   const [orders, setOrders] = useState<Order[]>(() => {
     const sampleOrders: Order[] = [
       {
@@ -171,6 +264,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const register = useCallback((restaurantName: string, email: string, password: string) => {
     if (restaurantName && email && password) {
+      setSettings(prev => ({ ...prev, restaurantName }));
       setIsAuthenticated(true);
     }
   }, []);
@@ -216,6 +310,50 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setProducts(prev => prev.filter(p => p.id !== id));
   }, []);
 
+  const addCustomer = useCallback((customer: Omit<Customer, 'id'>) => {
+    const newCustomer = { ...customer, id: Date.now().toString() };
+    setCustomers(prev => [...prev, newCustomer]);
+  }, []);
+
+  const updateCustomer = useCallback((id: string, updates: Partial<Customer>) => {
+    setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  }, []);
+
+  const deleteCustomer = useCallback((id: string) => {
+    setCustomers(prev => prev.filter(c => c.id !== id));
+  }, []);
+
+  const addStockMovement = useCallback((movement: Omit<StockMovement, 'id' | 'date'>) => {
+    const newMovement: StockMovement = {
+      ...movement,
+      id: Date.now().toString(),
+      date: new Date(),
+    };
+    setStockMovements(prev => [newMovement, ...prev]);
+    
+    // Update product stock
+    setProducts(prev => prev.map(p => {
+      if (p.id === movement.productId) {
+        const stockChange = movement.type === 'in' ? movement.quantity : -movement.quantity;
+        return { ...p, stock: Math.max(0, p.stock + stockChange) };
+      }
+      return p;
+    }));
+  }, []);
+
+  const addCampaign = useCallback((campaign: Omit<Campaign, 'id'>) => {
+    const newCampaign = { ...campaign, id: Date.now().toString() };
+    setCampaigns(prev => [...prev, newCampaign]);
+  }, []);
+
+  const updateCampaign = useCallback((id: string, updates: Partial<Campaign>) => {
+    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  }, []);
+
+  const deleteCampaign = useCallback((id: string) => {
+    setCampaigns(prev => prev.filter(c => c.id !== id));
+  }, []);
+
   const addOrder = useCallback((tableId: number, items: OrderItem[], station: 'bar' | 'kitchen') => {
     const newOrder: Order = {
       id: Date.now().toString(),
@@ -234,13 +372,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         : t
     ));
 
-    // Deduct stock
+    // Deduct stock and record movement
     items.forEach(item => {
-      setProducts(prev => prev.map(p => 
-        p.id === item.productId ? { ...p, stock: Math.max(0, p.stock - item.quantity) } : p
-      ));
+      const product = products.find(p => p.id === item.productId);
+      if (product) {
+        setProducts(prev => prev.map(p => 
+          p.id === item.productId ? { ...p, stock: Math.max(0, p.stock - item.quantity) } : p
+        ));
+        setStockMovements(prev => [{
+          id: Date.now().toString() + item.productId,
+          productId: item.productId,
+          productName: item.productName,
+          type: 'out',
+          quantity: item.quantity,
+          reason: `Pedido Mesa ${tableId}`,
+          date: new Date(),
+        }, ...prev]);
+      }
     });
-  }, []);
+  }, [products]);
 
   const deliverOrder = useCallback((orderId: string) => {
     const order = orders.find(o => o.id === orderId);
@@ -332,6 +482,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       closeTable,
       addItemToTable,
       customers,
+      addCustomer,
+      updateCustomer,
+      deleteCustomer,
+      stockMovements,
+      addStockMovement,
+      campaigns,
+      addCampaign,
+      updateCampaign,
+      deleteCampaign,
       undoAction,
       performUndo,
       clearUndo,
