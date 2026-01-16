@@ -7,39 +7,20 @@ import Logo from '@/components/Logo';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
-type AuthMode = 'login' | 'signup';
-
 const LoginForm: React.FC = () => {
-  const { login, signup, loadingData } = useApp();
-  const [mode, setMode] = useState<AuthMode>('login');
+  const { login, loadingData } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [restaurantName, setRestaurantName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string; restaurantName?: string }>({});
-
-  const clearErrors = () => setErrors({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    clearErrors();
     setIsLoading(true);
     
-    if (mode === 'login') {
-      const result = await login(email, password);
-      
-      if (!result.success) {
-        toast.error(result.error || 'Erro ao realizar login');
-      }
-    } else {
-      const result = await signup(restaurantName, email, password);
-      
-      if (!result.success) {
-        toast.error(result.error || 'Erro ao criar conta');
-      } else {
-        toast.success('Conta criada! Verifique seu email para confirmar o cadastro.');
-        setMode('login');
-      }
+    const result = await login(email, password);
+    
+    if (!result.success) {
+      toast.error(result.error || 'Erro ao realizar login');
     }
     
     setIsLoading(false);
@@ -65,36 +46,13 @@ const LoginForm: React.FC = () => {
           </div>
           
           <h1 className="text-2xl font-bold text-center text-foreground mb-2">
-            {mode === 'login' ? 'Entrar no PedeAI' : 'Criar Conta'}
+            Entrar no PedeAI
           </h1>
           <p className="text-muted-foreground text-center mb-8">
-            {mode === 'login' 
-              ? 'Acesse o painel do seu restaurante' 
-              : 'Cadastre seu restaurante no PedeAI'}
+            Acesse o painel do seu restaurante
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {mode === 'signup' && (
-              <div className="space-y-2">
-                <Label htmlFor="restaurantName" className="text-foreground font-medium">
-                  Nome do Restaurante
-                </Label>
-                <Input
-                  id="restaurantName"
-                  type="text"
-                  placeholder="Meu Restaurante"
-                  value={restaurantName}
-                  onChange={(e) => setRestaurantName(e.target.value)}
-                  className="h-12 rounded-xl border-border bg-secondary/50 focus:ring-primary"
-                  disabled={isLoading}
-                  maxLength={100}
-                />
-                {errors.restaurantName && (
-                  <p className="text-sm text-destructive">{errors.restaurantName}</p>
-                )}
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="email" className="text-foreground font-medium">
                 Email
@@ -110,9 +68,6 @@ const LoginForm: React.FC = () => {
                 maxLength={255}
                 autoComplete="email"
               />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
-              )}
             </div>
 
             <div className="space-y-2">
@@ -128,14 +83,8 @@ const LoginForm: React.FC = () => {
                 className="h-12 rounded-xl border-border bg-secondary/50 focus:ring-primary"
                 disabled={isLoading}
                 maxLength={128}
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                autoComplete="current-password"
               />
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
-              )}
-              {mode === 'signup' && (
-                <p className="text-xs text-muted-foreground">Mínimo 8 caracteres</p>
-              )}
             </div>
 
             <Button 
@@ -146,41 +95,13 @@ const LoginForm: React.FC = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {mode === 'login' ? 'Entrando...' : 'Criando conta...'}
+                  Entrando...
                 </>
               ) : (
-                mode === 'login' ? 'Entrar' : 'Criar Conta'
+                'Entrar'
               )}
             </Button>
           </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-muted-foreground">
-              {mode === 'login' ? (
-                <>
-                  Não tem uma conta?{' '}
-                  <button 
-                    onClick={() => { setMode('signup'); clearErrors(); }}
-                    className="text-primary font-semibold hover:underline"
-                    type="button"
-                  >
-                    Cadastre-se
-                  </button>
-                </>
-              ) : (
-                <>
-                  Já tem uma conta?{' '}
-                  <button 
-                    onClick={() => { setMode('login'); clearErrors(); }}
-                    className="text-primary font-semibold hover:underline"
-                    type="button"
-                  >
-                    Entrar
-                  </button>
-                </>
-              )}
-            </p>
-          </div>
         </div>
       </div>
     </div>
