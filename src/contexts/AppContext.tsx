@@ -1,9 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useRestaurant } from '@/hooks/useRestaurant';
 import { usePedidos } from '@/hooks/usePedidos';
-import { validateLoginInput, validateSignupInput } from '@/lib/auth-validation';
+import { validateLoginInput } from '@/lib/auth-validation';
 
 export interface Product {
   id: string;
@@ -117,12 +116,9 @@ interface AuthResult {
 
 interface AppContextType {
   isAuthenticated: boolean;
-  user: User | null;
-  session: Session | null;
   restaurantId: string | null;
   login: (email: string, password: string) => Promise<AuthResult>;
-  signup: (restaurantName: string, email: string, password: string) => Promise<AuthResult>;
-  logout: () => Promise<void>;
+  logout: () => void;
   tables: Table[];
   settings: AppSettings;
   updateSettings: (settings: Partial<AppSettings>) => void;
@@ -165,12 +161,13 @@ const initialPrinters: Printer[] = [
 ];
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [restaurantId, setRestaurantId] = useState<string | null>(() => {
+    // Check localStorage for existing session
+    return localStorage.getItem('pedeai_restaurant_id');
+  });
   const [loadingData, setLoadingData] = useState(true);
   
-  const restaurantId = user?.id || null;
-  const isAuthenticated = !!session;
+  const isAuthenticated = !!restaurantId;
   
   const [settings, setSettings] = useState<AppSettings>({
     totalTables: 12,
@@ -203,25 +200,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const { restaurant, updateRestaurant } = useRestaurant(restaurantId);
   const { pedidos, dailyMetrics } = usePedidos(restaurantId);
 
-  // Set up auth state listener on mount
+  // Check for existing session on mount
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoadingData(false);
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoadingData(false);
-    });
-
-    return () => subscription.unsubscribe();
+    const storedId = localStorage.getItem('pedeai_restaurant_id');
+    if (storedId) {
+      setRestaurantId(storedId);
+    }
+    setLoadingData(false);
   }, []);
 
   // Sync restaurant data with settings
@@ -289,9 +274,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   }, [settings.totalTables]);
 
-  // Secure login using Supabase Auth
+  // Login directly against Restaurantes table
   const login = useCallback(async (email: string, password: string): Promise<AuthResult> => {
-    // Validate input before sending to server
+    // Validate input
     const validation = validateLoginInput(email, password);
     if (!validation.isValid) {
       const errorMessage = validation.errors.email || validation.errors.password || 'Dados inválidos';
@@ -299,15 +284,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      const { data, error } = await supabase
+        .from('Restaurantes')
+        .select('id, email, senha')
+        .eq('email', email.trim())
+        .maybeSingle();
 
-      if (error) {
-        // Return generic error message to prevent email enumeration
+      if (error || !data) {
         return { success: false, error: 'Email ou senha inválidos' };
       }
+
+      // Check password
+      if (data.senha !== password) {
+        return { success: false, error: 'Email ou senha inválidos' };
+      }
+
+      // Store session in localStorage
+      localStorage.setItem('pedeai_restaurant_id', data.id);
+      setRestaurantId(data.id);
 
       return { success: true };
     } catch (err) {
@@ -315,58 +309,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, []);
 
-  // Secure signup using Supabase Auth
-  const signup = useCallback(async (restaurantName: string, email: string, password: string): Promise<AuthResult> => {
-    // Validate input
-    const validation = validateSignupInput(restaurantName, email, password);
-    if (!validation.isValid) {
-      const errorMessage = validation.errors.restaurantName || validation.errors.email || validation.errors.password || 'Dados inválidos';
-      return { success: false, error: errorMessage };
-    }
-
-    try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-        },
-      });
-
-      if (error) {
-        if (error.message.includes('already registered')) {
-          return { success: false, error: 'Este email já está cadastrado' };
-        }
-        return { success: false, error: 'Erro ao criar conta. Tente novamente.' };
-      }
-
-      // Create restaurant profile after signup
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('Restaurantes')
-          .insert({
-            id: data.user.id,
-            nome: restaurantName.trim(),
-            email: email.trim(),
-            quantidade_mesas: '12',
-          });
-
-        if (profileError) {
-          // Profile creation failed, but user was created
-          // They can update profile later
-        }
-      }
-
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: 'Erro ao criar conta. Tente novamente.' };
-    }
-  }, []);
-
-  const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+  const logout = useCallback(() => {
+    localStorage.removeItem('pedeai_restaurant_id');
+    setRestaurantId(null);
   }, []);
 
   const updateSettings = useCallback((newSettings: Partial<AppSettings>) => {
@@ -536,11 +481,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   return (
     <AppContext.Provider value={{
       isAuthenticated,
-      user,
-      session,
       restaurantId,
       login,
-      signup,
       logout,
       tables,
       settings,
