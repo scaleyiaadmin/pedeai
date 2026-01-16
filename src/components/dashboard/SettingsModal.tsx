@@ -183,16 +183,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] bg-card p-0 flex flex-col">
-        <DialogHeader className="p-6 pb-0">
+      <DialogContent className="max-w-5xl h-[85vh] bg-card p-0 flex flex-col overflow-hidden">
+        <DialogHeader className="p-6 pb-4 flex-shrink-0 border-b border-border">
           <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
             <Settings2 className="w-5 h-5 text-primary" />
             Configurações
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-          <TabsList className="grid w-full grid-cols-5 bg-secondary rounded-none border-b border-border px-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="grid w-full grid-cols-5 bg-secondary rounded-none border-b border-border px-6 flex-shrink-0">
             <TabsTrigger value="operation" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
               <Settings2 className="w-4 h-4 mr-2" />
               Operação
@@ -215,9 +215,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             </TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="flex-1 p-6">
+          <div className="flex-1 overflow-y-auto p-6">
             {/* Tab A: Operação */}
-            <TabsContent value="operation" className="mt-0 space-y-6">
+            <TabsContent value="operation" className="mt-0 space-y-6 data-[state=active]:block">
               {/* Informações do Restaurante */}
               <div className="bg-secondary/30 rounded-xl p-6 space-y-4">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
@@ -1204,7 +1204,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
             </TabsContent>
-          </ScrollArea>
+          </div>
         </Tabs>
       </DialogContent>
     </Dialog>
