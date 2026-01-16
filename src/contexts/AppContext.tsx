@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useRestaurant } from '@/hooks/useRestaurant';
 import { usePedidos } from '@/hooks/usePedidos';
+import { validateLoginInput, validateSignupInput } from '@/lib/auth-validation';
 
 export interface Product {
   id: string;
@@ -108,11 +110,19 @@ interface AppSettings {
   printers: Printer[];
 }
 
+interface AuthResult {
+  success: boolean;
+  error?: string;
+}
+
 interface AppContextType {
   isAuthenticated: boolean;
+  user: User | null;
+  session: Session | null;
   restaurantId: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<AuthResult>;
+  signup: (restaurantName: string, email: string, password: string) => Promise<AuthResult>;
+  logout: () => Promise<void>;
   tables: Table[];
   settings: AppSettings;
   updateSettings: (settings: Partial<AppSettings>) => void;
@@ -155,9 +165,12 @@ const initialPrinters: Printer[] = [
 ];
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [restaurantId, setRestaurantId] = useState<string | null>(null);
-  const [loadingData, setLoadingData] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loadingData, setLoadingData] = useState(true);
+  
+  const restaurantId = user?.id || null;
+  const isAuthenticated = !!session;
   
   const [settings, setSettings] = useState<AppSettings>({
     totalTables: 12,
@@ -189,6 +202,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Use Supabase hooks
   const { restaurant, updateRestaurant } = useRestaurant(restaurantId);
   const { pedidos, dailyMetrics } = usePedidos(restaurantId);
+
+  // Set up auth state listener on mount
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoadingData(false);
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoadingData(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Sync restaurant data with settings
   useEffect(() => {
@@ -255,37 +289,84 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   }, [settings.totalTables]);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    try {
-      setLoadingData(true);
-      // Query the Restaurantes table to authenticate
-      const { data, error } = await supabase
-        .from('Restaurantes')
-        .select('*')
-        .eq('email', email)
-        .eq('senha', password)
-        .single();
+  // Secure login using Supabase Auth
+  const login = useCallback(async (email: string, password: string): Promise<AuthResult> => {
+    // Validate input before sending to server
+    const validation = validateLoginInput(email, password);
+    if (!validation.isValid) {
+      const errorMessage = validation.errors.email || validation.errors.password || 'Dados inválidos';
+      return { success: false, error: errorMessage };
+    }
 
-      if (error || !data) {
-        console.error('Login failed:', error);
-        setLoadingData(false);
-        return false;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        // Return generic error message to prevent email enumeration
+        return { success: false, error: 'Email ou senha inválidos' };
       }
 
-      setRestaurantId(data.id);
-      setIsAuthenticated(true);
-      setLoadingData(false);
-      return true;
+      return { success: true };
     } catch (err) {
-      console.error('Login error:', err);
-      setLoadingData(false);
-      return false;
+      return { success: false, error: 'Erro ao realizar login. Tente novamente.' };
     }
   }, []);
 
-  const logout = useCallback(() => {
-    setIsAuthenticated(false);
-    setRestaurantId(null);
+  // Secure signup using Supabase Auth
+  const signup = useCallback(async (restaurantName: string, email: string, password: string): Promise<AuthResult> => {
+    // Validate input
+    const validation = validateSignupInput(restaurantName, email, password);
+    if (!validation.isValid) {
+      const errorMessage = validation.errors.restaurantName || validation.errors.email || validation.errors.password || 'Dados inválidos';
+      return { success: false, error: errorMessage };
+    }
+
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
+      });
+
+      if (error) {
+        if (error.message.includes('already registered')) {
+          return { success: false, error: 'Este email já está cadastrado' };
+        }
+        return { success: false, error: 'Erro ao criar conta. Tente novamente.' };
+      }
+
+      // Create restaurant profile after signup
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('Restaurantes')
+          .insert({
+            id: data.user.id,
+            nome: restaurantName.trim(),
+            email: email.trim(),
+            quantidade_mesas: '12',
+          });
+
+        if (profileError) {
+          // Profile creation failed, but user was created
+          // They can update profile later
+        }
+      }
+
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: 'Erro ao criar conta. Tente novamente.' };
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
   }, []);
 
   const updateSettings = useCallback((newSettings: Partial<AppSettings>) => {
@@ -423,7 +504,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (product) {
       addOrder(tableId, [item], product.station);
     } else {
-      // For manually added items without product reference
       addOrder(tableId, [item], 'kitchen');
     }
   }, [products, addOrder]);
@@ -456,8 +536,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   return (
     <AppContext.Provider value={{
       isAuthenticated,
+      user,
+      session,
       restaurantId,
       login,
+      signup,
       logout,
       tables,
       settings,
