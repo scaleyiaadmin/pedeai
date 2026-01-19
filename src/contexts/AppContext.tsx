@@ -128,12 +128,12 @@ interface AppContextType {
   updateProduct: (id: string, updates: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
   orders: Order[];
-  addOrder: (tableId: number, items: OrderItem[], station: 'bar' | 'kitchen') => void;
+  addOrder: (tableId: number, items: OrderItem[], station: 'bar' | 'kitchen') => Promise<void>;
   deliverOrder: (orderId: string) => void;
   reprintOrder: (orderId: string) => void;
   updateTableAlert: (tableId: number, alert: 'waiter' | 'bill' | null) => void;
   closeTable: (tableId: number) => void;
-  addItemToTable: (tableId: number, item: OrderItem) => void;
+  addItemToTable: (tableId: number, item: OrderItem) => Promise<void>;
   customers: Customer[];
   addCustomer: (customer: Omit<Customer, 'id'>) => void;
   updateCustomer: (id: string, updates: Partial<Customer>) => void;
@@ -388,24 +388,50 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCampaigns(prev => prev.filter(c => c.id !== id));
   }, []);
 
-  const addOrder = useCallback((tableId: number, items: OrderItem[], station: 'bar' | 'kitchen') => {
-    const newOrder: Order = {
-      id: Date.now().toString(),
-      tableId,
-      items,
-      station,
-      status: 'pending',
-      printStatus: 'printed',
-      createdAt: new Date(),
-    };
-    
-    setOrders(prev => [...prev, newOrder]);
-    setTables(prev => prev.map(t => 
-      t.id === tableId 
-        ? { ...t, status: 'occupied', orders: [...t.orders, newOrder], consumption: [...t.consumption, ...items] }
-        : t
-    ));
-  }, []);
+  const addOrder = useCallback(async (tableId: number, items: OrderItem[], station: 'bar' | 'kitchen') => {
+    if (!restaurantId) {
+      console.error('No restaurant ID available');
+      return;
+    }
+
+    try {
+      // Calculate subtotal
+      const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+      // Insert into Supabase first
+      const { data, error } = await supabase
+        .from('Pedidos')
+        .insert({
+          mesa: tableId.toString(),
+          itens: JSON.stringify(items.map(item => ({
+            nome: item.productName,
+            quantidade: item.quantity,
+            preco: item.price,
+          }))),
+          Subtotal: subtotal.toString(),
+          status: 'pendente',
+          restaurante_id: restaurantId,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error inserting order:', error);
+        throw error;
+      }
+
+      // Update table status locally after successful insert
+      setTables(prev => prev.map(t => 
+        t.id === tableId 
+          ? { ...t, status: 'occupied', consumption: [...t.consumption, ...items] }
+          : t
+      ));
+
+      console.log('Order created successfully:', data);
+    } catch (err) {
+      console.error('Failed to create order:', err);
+    }
+  }, [restaurantId]);
 
   const deliverOrder = useCallback((orderId: string) => {
     const order = orders.find(o => o.id === orderId);
@@ -444,12 +470,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [tables]);
 
-  const addItemToTable = useCallback((tableId: number, item: OrderItem) => {
+  const addItemToTable = useCallback(async (tableId: number, item: OrderItem) => {
     const product = products.find(p => p.id === item.productId);
     if (product) {
-      addOrder(tableId, [item], product.station);
+      await addOrder(tableId, [item], product.station);
     } else {
-      addOrder(tableId, [item], 'kitchen');
+      await addOrder(tableId, [item], 'kitchen');
     }
   }, [products, addOrder]);
 
