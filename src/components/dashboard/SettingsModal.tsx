@@ -1131,106 +1131,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             </TabsContent>
 
             {/* Tab E: Pagamentos */}
-            <TabsContent value="payments" className="mt-0 space-y-6">
-              {/* Métodos de Pagamento */}
-              <div className="bg-secondary/30 rounded-xl p-6 space-y-4">
-                <h3 className="font-semibold text-foreground flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
-                  Métodos de Pagamento Aceitos
+            <TabsContent value="payments" className="mt-0 h-full flex items-center justify-center">
+              <div className="bg-secondary/30 rounded-xl p-12 text-center max-w-md">
+                <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+                  <CreditCard className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">
+                  Módulo de Pagamentos em Breve
                 </h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                    settings.acceptPix ? 'border-success bg-success/10' : 'border-border bg-card'
-                  }`} onClick={() => updateSettings({ acceptPix: !settings.acceptPix })}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-xl">
-                        💠
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground">PIX</p>
-                        <p className="text-sm text-muted-foreground">Pagamento instantâneo</p>
-                      </div>
-                    </div>
-                    <Switch checked={settings.acceptPix} onCheckedChange={(c) => updateSettings({ acceptPix: c })} />
-                  </div>
-                  <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                    settings.acceptCard ? 'border-success bg-success/10' : 'border-border bg-card'
-                  }`} onClick={() => updateSettings({ acceptCard: !settings.acceptCard })}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-xl">
-                        💳
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground">Cartão</p>
-                        <p className="text-sm text-muted-foreground">Débito e Crédito</p>
-                      </div>
-                    </div>
-                    <Switch checked={settings.acceptCard} onCheckedChange={(c) => updateSettings({ acceptCard: c })} />
-                  </div>
-                  <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                    settings.acceptCash ? 'border-success bg-success/10' : 'border-border bg-card'
-                  }`} onClick={() => updateSettings({ acceptCash: !settings.acceptCash })}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-xl">
-                        💵
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground">Dinheiro</p>
-                        <p className="text-sm text-muted-foreground">Pagamento em espécie</p>
-                      </div>
-                    </div>
-                    <Switch checked={settings.acceptCash} onCheckedChange={(c) => updateSettings({ acceptCash: c })} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Taxa de Serviço */}
-              <div className="bg-secondary/30 rounded-xl p-6 space-y-4">
-                <h3 className="font-semibold text-foreground">Taxa de Serviço</h3>
-                <div className="flex items-center gap-4">
-                  <div className="space-y-2">
-                    <Label>Percentual (%)</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={20}
-                      value={settings.serviceFee}
-                      onChange={(e) => updateSettings({ serviceFee: parseFloat(e.target.value) || 0 })}
-                      className="w-24 rounded-lg"
-                    />
-                  </div>
-                  <p className="text-sm text-muted-foreground pt-6">
-                    A taxa de serviço será aplicada automaticamente no fechamento da conta.
-                    <br />
-                    Valor atual: <span className="font-bold text-primary">{settings.serviceFee}%</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Resumo do Dia */}
-              <div className="bg-secondary/30 rounded-xl p-6 space-y-4">
-                <h3 className="font-semibold text-foreground flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />
-                  Resumo do Dia (Simulado)
-                </h3>
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="bg-card p-4 rounded-xl border border-border text-center">
-                    <p className="text-3xl font-bold text-primary">R$ 3.450</p>
-                    <p className="text-sm text-muted-foreground">Faturamento</p>
-                  </div>
-                  <div className="bg-card p-4 rounded-xl border border-border text-center">
-                    <p className="text-3xl font-bold text-success">42</p>
-                    <p className="text-sm text-muted-foreground">Pedidos</p>
-                  </div>
-                  <div className="bg-card p-4 rounded-xl border border-border text-center">
-                    <p className="text-3xl font-bold text-warning">R$ 82,14</p>
-                    <p className="text-sm text-muted-foreground">Ticket Médio</p>
-                  </div>
-                  <div className="bg-card p-4 rounded-xl border border-border text-center">
-                    <p className="text-3xl font-bold text-info">18</p>
-                    <p className="text-sm text-muted-foreground">Mesas Atendidas</p>
-                  </div>
-                </div>
+                <p className="text-muted-foreground">
+                  Estamos trabalhando para trazer integração completa com métodos de pagamento.
+                </p>
               </div>
             </TabsContent>
           </div>
