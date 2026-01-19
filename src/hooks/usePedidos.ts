@@ -127,6 +127,21 @@ export const usePedidos = (restaurantId: string | null) => {
     }
   }, []);
 
+  const deletePedido = useCallback(async (pedidoId: number) => {
+    try {
+      const { error } = await supabase
+        .from('Pedidos')
+        .delete()
+        .eq('id', pedidoId);
+
+      if (error) throw error;
+      return { error: null };
+    } catch (err) {
+      console.error('Error deleting pedido:', err);
+      return { error: err instanceof Error ? err.message : 'Erro ao excluir pedido' };
+    }
+  }, []);
+
   // Calculate daily metrics
   const dailyMetrics = useCallback(() => {
     const today = new Date();
@@ -171,6 +186,7 @@ export const usePedidos = (restaurantId: string | null) => {
     loading,
     error,
     updatePedidoStatus,
+    deletePedido,
     refetch: fetchPedidos,
     dailyMetrics,
   };
