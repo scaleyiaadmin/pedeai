@@ -80,9 +80,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     reason: '',
   });
 
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
     if (newProduct.name && newProduct.price) {
-      addProduct({
+      await addProduct({
         name: newProduct.name,
         price: newProduct.price,
         category: newProduct.category || 'Geral',

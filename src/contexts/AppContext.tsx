@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useCallback, ReactNode, use
 import { supabase } from '@/integrations/supabase/client';
 import { useRestaurant } from '@/hooks/useRestaurant';
 import { usePedidos } from '@/hooks/usePedidos';
+import { useProdutos, ProdutoSupabase } from '@/hooks/useProdutos';
 import { validateLoginInput } from '@/lib/auth-validation';
+import { toast } from 'sonner';
 
 export interface Product {
   id: string;
@@ -124,9 +126,9 @@ interface AppContextType {
   updateSettings: (settings: Partial<AppSettings>) => void;
   saveSettingsToSupabase: () => Promise<void>;
   products: Product[];
-  addProduct: (product: Omit<Product, 'id'>) => void;
-  updateProduct: (id: string, updates: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
   orders: Order[];
   addOrder: (tableId: number, items: OrderItem[], station: 'bar' | 'kitchen') => Promise<void>;
   deliverOrder: (orderId: string) => void;
@@ -199,6 +201,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Use Supabase hooks
   const { restaurant, updateRestaurant } = useRestaurant(restaurantId);
   const { pedidos, dailyMetrics } = usePedidos(restaurantId);
+  const { 
+    produtos: produtosDb, 
+    addProduto, 
+    updateProduto, 
+    deleteProduto 
+  } = useProdutos(restaurantId);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -332,18 +340,56 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   }, [restaurantId, settings, updateRestaurant]);
 
-  const addProduct = useCallback((product: Omit<Product, 'id'>) => {
-    const newProduct = { ...product, id: Date.now().toString() };
-    setProducts(prev => [...prev, newProduct]);
-  }, []);
+  // Sync products from Supabase
+  useEffect(() => {
+    const convertedProducts: Product[] = produtosDb.map(p => ({
+      id: p.id.toString(),
+      name: p.nome || '',
+      price: parseFloat(p.preco) || 0,
+      category: 'Geral',
+      station: 'bar' as const,
+      stock: 0,
+      isActive: true,
+      minStock: 10,
+      costPrice: 0,
+      description: '',
+    }));
+    setProducts(convertedProducts);
+  }, [produtosDb]);
 
-  const updateProduct = useCallback((id: string, updates: Partial<Product>) => {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-  }, []);
+  const addProduct = useCallback(async (product: Omit<Product, 'id'>) => {
+    const success = await addProduto({
+      nome: product.name,
+      preco: product.price,
+    });
+    if (success) {
+      toast.success('Produto adicionado com sucesso!');
+    } else {
+      toast.error('Erro ao adicionar produto');
+    }
+  }, [addProduto]);
 
-  const deleteProduct = useCallback((id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
-  }, []);
+  const updateProduct = useCallback(async (id: string, updates: Partial<Product>) => {
+    const updateData: { nome?: string; preco?: number } = {};
+    if (updates.name !== undefined) updateData.nome = updates.name;
+    if (updates.price !== undefined) updateData.preco = updates.price;
+
+    const success = await updateProduto(parseInt(id), updateData);
+    if (success) {
+      toast.success('Produto atualizado!');
+    } else {
+      toast.error('Erro ao atualizar produto');
+    }
+  }, [updateProduto]);
+
+  const deleteProduct = useCallback(async (id: string) => {
+    const success = await deleteProduto(parseInt(id));
+    if (success) {
+      toast.success('Produto removido!');
+    } else {
+      toast.error('Erro ao remover produto');
+    }
+  }, [deleteProduto]);
 
   const addCustomer = useCallback((customer: Omit<Customer, 'id'>) => {
     const newCustomer = { ...customer, id: Date.now().toString() };
