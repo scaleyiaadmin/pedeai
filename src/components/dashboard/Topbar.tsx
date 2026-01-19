@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
 import SettingsModal from './SettingsModal';
+import PasswordModal from './PasswordModal';
 
 interface TopbarProps {
   activeView: 'dashboard' | 'operation' | 'conversations';
@@ -16,12 +17,79 @@ const Topbar: React.FC<TopbarProps> = ({ activeView, onViewChange }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isOnline] = useState(true);
+  
+  // Password protection state
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'dashboard' | 'conversations' | 'operation' | 'settings' | null>(null);
+  const [unlockedAreas, setUnlockedAreas] = useState<Set<string>>(new Set());
 
   const navItems = [
-    { value: 'dashboard', label: 'Dashboard' },
-    { value: 'operation', label: 'Operação' },
-    { value: 'conversations', label: 'Conversas' },
+    { value: 'dashboard', label: 'Dashboard', protected: true },
+    { value: 'operation', label: 'Operação', protected: false },
+    { value: 'conversations', label: 'Conversas', protected: true },
   ] as const;
+
+  const handleNavClick = (value: 'dashboard' | 'operation' | 'conversations') => {
+    const item = navItems.find(i => i.value === value);
+    
+    // If it's a protected area and not unlocked, ask for password
+    if (item?.protected && !unlockedAreas.has(value)) {
+      setPendingAction(value);
+      setIsPasswordModalOpen(true);
+      return;
+    }
+    
+    onViewChange(value);
+  };
+
+  const handleSettingsClick = () => {
+    if (!unlockedAreas.has('settings')) {
+      setPendingAction('settings');
+      setIsPasswordModalOpen(true);
+      return;
+    }
+    setIsSettingsOpen(true);
+  };
+
+  const handlePasswordSuccess = () => {
+    if (pendingAction) {
+      // Mark the area as unlocked
+      setUnlockedAreas(prev => new Set([...prev, pendingAction]));
+      
+      if (pendingAction === 'settings') {
+        setIsSettingsOpen(true);
+      } else {
+        onViewChange(pendingAction);
+      }
+      setPendingAction(null);
+    }
+  };
+
+  const getPasswordModalTitle = () => {
+    switch (pendingAction) {
+      case 'dashboard':
+        return 'Acesso ao Dashboard';
+      case 'conversations':
+        return 'Acesso às Conversas';
+      case 'settings':
+        return 'Acesso às Configurações';
+      default:
+        return 'Área Restrita';
+    }
+  };
+
+  const getPasswordModalDescription = () => {
+    switch (pendingAction) {
+      case 'dashboard':
+        return 'Digite a senha do restaurante para acessar o dashboard';
+      case 'conversations':
+        return 'Digite a senha do restaurante para ver as conversas';
+      case 'settings':
+        return 'Digite a senha do restaurante para alterar configurações';
+      default:
+        return 'Digite a senha do restaurante para acessar';
+    }
+  };
 
   return (
     <>
@@ -42,7 +110,7 @@ const Topbar: React.FC<TopbarProps> = ({ activeView, onViewChange }) => {
               key={item.value}
               variant={activeView === item.value ? 'default' : 'secondary'}
               size="sm"
-              onClick={() => onViewChange(item.value)}
+              onClick={() => handleNavClick(item.value)}
               className={`rounded-full px-4 transition-all ${
                 activeView === item.value 
                   ? 'bg-primary text-primary-foreground shadow-md' 
@@ -83,7 +151,7 @@ const Topbar: React.FC<TopbarProps> = ({ activeView, onViewChange }) => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setIsSettingsOpen(true)}
+            onClick={handleSettingsClick}
             className="rounded-full hover:bg-secondary"
           >
             <Settings className="w-5 h-5 text-foreground" />
@@ -94,6 +162,17 @@ const Topbar: React.FC<TopbarProps> = ({ activeView, onViewChange }) => {
       <SettingsModal 
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 
+      />
+
+      <PasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => {
+          setIsPasswordModalOpen(false);
+          setPendingAction(null);
+        }}
+        onSuccess={handlePasswordSuccess}
+        title={getPasswordModalTitle()}
+        description={getPasswordModalDescription()}
       />
     </>
   );
