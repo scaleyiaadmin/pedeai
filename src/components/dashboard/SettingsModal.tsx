@@ -481,22 +481,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Preço de Venda *</Label>
+                      <Label>Preço *</Label>
                       <Input
                         type="number"
                         step="0.01"
                         value={newProduct.price}
                         onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) || 0 })}
-                        className="rounded-lg"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Preço de Custo</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={newProduct.costPrice}
-                        onChange={(e) => setNewProduct({ ...newProduct, costPrice: parseFloat(e.target.value) || 0 })}
                         className="rounded-lg"
                       />
                     </div>
@@ -532,20 +522,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         className="rounded-lg"
                       />
                     </div>
-                    <div className="space-y-2 col-span-2">
-                      <Label>Descrição</Label>
-                      <Input
-                        value={newProduct.description}
-                        onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                        className="rounded-lg"
-                      />
-                    </div>
                     <div className="space-y-2">
                       <Label>Estoque Mínimo</Label>
                       <Input
                         type="number"
                         value={newProduct.minStock}
                         onChange={(e) => setNewProduct({ ...newProduct, minStock: parseInt(e.target.value) || 10 })}
+                        className="rounded-lg"
+                      />
+                    </div>
+                    <div className="space-y-2 col-span-3">
+                      <Label>Descrição</Label>
+                      <Input
+                        value={newProduct.description}
+                        onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
                         className="rounded-lg"
                       />
                     </div>
@@ -630,9 +620,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                           </div>
                           <div className="text-right">
                             <p className="font-bold text-primary">R$ {product.price.toFixed(2)}</p>
-                            {product.costPrice && (
-                              <p className="text-xs text-muted-foreground">Custo: R$ {product.costPrice.toFixed(2)}</p>
-                            )}
                           </div>
                           <Badge variant="outline">{product.category}</Badge>
                           <Badge variant={product.station === 'bar' ? 'default' : 'secondary'}>
