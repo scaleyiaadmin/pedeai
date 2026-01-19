@@ -18,9 +18,13 @@ const Dashboard: React.FC = () => {
       {activeView === 'dashboard' && <DashboardHome />}
       
       {activeView === 'operation' && (
-        <div className="flex-1 flex overflow-hidden">
-          <TableGrid />
-          <OrderQueue />
+        <div className="flex-1 flex overflow-hidden w-full">
+          <div className="flex-1 min-w-0">
+            <TableGrid />
+          </div>
+          <div className="w-80 flex-shrink-0 lg:w-96">
+            <OrderQueue />
+          </div>
         </div>
       )}
 

@@ -13,7 +13,7 @@ const OrderQueue: React.FC = () => {
   const pendingOrders = filteredOrders.filter(o => o.status !== 'delivered');
 
   return (
-    <div className="w-80 bg-card border-l border-border p-4 overflow-y-auto">
+    <div className="h-full bg-card border-l border-border p-4 overflow-y-auto">
       <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-warning"></span>
         Pedidos ({pendingOrders.length})
