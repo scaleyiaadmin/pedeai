@@ -1,9 +1,7 @@
 import { useState } from 'react';
-import { Beer, Utensils, Bell, Receipt, HelpCircle } from 'lucide-react';
+import { Beer, Utensils, Bell, Receipt } from 'lucide-react';
 import { useApp, Table } from '@/contexts/AppContext';
 import TableDetailModal from './TableDetailModal';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const TableGrid: React.FC = () => {
   const { tables, settings, filter, orders } = useApp();
@@ -44,49 +42,13 @@ const TableGrid: React.FC = () => {
   ];
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <div className="flex-1 p-4 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-primary"></span>
             Mesas ({tables.length})
           </h2>
-
-          {/* Legend Popover */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <HelpCircle className="w-4 h-4" />
-                Legenda
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-64">
-              <h4 className="font-semibold text-foreground mb-3">Legenda de Status</h4>
-              <div className="space-y-2">
-                {legendItems.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg border-2 ${item.borderColor} ${item.color} flex items-center justify-center`}>
-                      {item.icon && <item.icon className="w-4 h-4" />}
-                    </div>
-                    <span className="text-sm text-foreground">{item.label}</span>
-                  </div>
-                ))}
-                <div className="border-t border-border pt-2 mt-2">
-                  <p className="text-xs text-muted-foreground">Ícones nos cards:</p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <div className="flex items-center gap-1">
-                      <Beer className="w-4 h-4 text-info" />
-                      <span className="text-xs text-muted-foreground">Bar</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Utensils className="w-4 h-4 text-warning" />
-                      <span className="text-xs text-muted-foreground">Cozinha</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
         </div>
         
         {/* Responsive Grid - Optimized for tablets */}
@@ -144,13 +106,37 @@ const TableGrid: React.FC = () => {
         </div>
       </div>
 
+      {/* Fixed Legend Footer */}
+      <div className="flex-shrink-0 bg-card border-t border-border px-4 py-3">
+        <div className="flex items-center justify-center gap-6 flex-wrap">
+          {legendItems.map((item, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <div className={`w-6 h-6 rounded-md border-2 ${item.borderColor} ${item.color} flex items-center justify-center`}>
+                {item.icon && <item.icon className="w-3 h-3" />}
+              </div>
+              <span className="text-xs text-muted-foreground">{item.label}</span>
+            </div>
+          ))}
+          <div className="flex items-center gap-4 border-l border-border pl-4">
+            <div className="flex items-center gap-1">
+              <Beer className="w-4 h-4 text-info" />
+              <span className="text-xs text-muted-foreground">Bar</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Utensils className="w-4 h-4 text-warning" />
+              <span className="text-xs text-muted-foreground">Cozinha</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {selectedTable && (
         <TableDetailModal 
           table={selectedTable} 
           onClose={() => setSelectedTable(null)} 
         />
       )}
-    </>
+    </div>
   );
 };
 

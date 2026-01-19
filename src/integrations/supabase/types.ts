@@ -22,7 +22,7 @@ export type Database = {
           mesa: string | null
           restaurante_id: string | null
           status: string | null
-          total: string | null
+          Subtotal: string | null
         }
         Insert: {
           created_at?: string
@@ -31,7 +31,7 @@ export type Database = {
           mesa?: string | null
           restaurante_id?: string | null
           status?: string | null
-          total?: string | null
+          Subtotal?: string | null
         }
         Update: {
           created_at?: string
@@ -40,7 +40,7 @@ export type Database = {
           mesa?: string | null
           restaurante_id?: string | null
           status?: string | null
-          total?: string | null
+          Subtotal?: string | null
         }
         Relationships: [
           {
@@ -91,6 +91,7 @@ export type Database = {
           horario_fecha_cozinha: string | null
           id: string
           nome: string | null
+          quantidade_max_mesas: string | null
           quantidade_mesas: string | null
           senha: string | null
           telefone: string | null
@@ -101,6 +102,7 @@ export type Database = {
           horario_fecha_cozinha?: string | null
           id?: string
           nome?: string | null
+          quantidade_max_mesas?: string | null
           quantidade_mesas?: string | null
           senha?: string | null
           telefone?: string | null
@@ -111,6 +113,7 @@ export type Database = {
           horario_fecha_cozinha?: string | null
           id?: string
           nome?: string | null
+          quantidade_max_mesas?: string | null
           quantidade_mesas?: string | null
           senha?: string | null
           telefone?: string | null

@@ -5,7 +5,7 @@ export interface Pedido {
   id: number;
   mesa: string | null;
   itens: string | null;
-  total: string | null;
+  Subtotal: string | null;
   status: string | null;
   restaurante_id: string | null;
   created_at: string;
@@ -35,7 +35,7 @@ const parsePedido = (pedido: Pedido): ParsedPedido => {
     id: pedido.id,
     mesa: parseInt(pedido.mesa || '0', 10),
     itens,
-    total: parseFloat(pedido.total || '0'),
+    total: parseFloat(pedido.Subtotal || '0'),
     status: pedido.status || 'pendente',
     restaurante_id: pedido.restaurante_id,
     created_at: new Date(pedido.created_at),
