@@ -5,6 +5,7 @@ export interface Pedido {
   id: number;
   mesa: string | null;
   itens: string | null;
+  quantidade: string | null;
   Subtotal: string | null;
   status: string | null;
   restaurante_id: string | null;
@@ -15,6 +16,8 @@ export interface ParsedPedido {
   id: number;
   mesa: number;
   itens: Array<{ nome: string; quantidade: number; preco: number }>;
+  productName: string;
+  quantity: number;
   total: number;
   status: string;
   restaurante_id: string | null;
@@ -22,20 +25,36 @@ export interface ParsedPedido {
 }
 
 const parsePedido = (pedido: Pedido): ParsedPedido => {
-  let itens: Array<{ nome: string; quantidade: number; preco: number }> = [];
-  try {
-    if (pedido.itens) {
-      itens = JSON.parse(pedido.itens);
-    }
-  } catch {
-    itens = [];
+  // Parse the product name from itens
+  const productName = pedido.itens || '';
+  
+  // Parse quantity
+  const quantity = parseInt(pedido.quantidade || '1', 10);
+  
+  // Parse subtotal - remove "R$ " and convert comma to dot
+  let total = 0;
+  if (pedido.Subtotal) {
+    const cleanSubtotal = pedido.Subtotal.replace('R$', '').replace(',', '.').trim();
+    total = parseFloat(cleanSubtotal) || 0;
   }
+  
+  // Calculate unit price
+  const unitPrice = quantity > 0 ? total / quantity : 0;
+  
+  // Create items array for backward compatibility
+  const itens = productName ? [{
+    nome: productName,
+    quantidade: quantity,
+    preco: unitPrice
+  }] : [];
 
   return {
     id: pedido.id,
     mesa: parseInt(pedido.mesa || '0', 10),
     itens,
-    total: parseFloat(pedido.Subtotal || '0'),
+    productName,
+    quantity,
+    total,
     status: pedido.status || 'pendente',
     restaurante_id: pedido.restaurante_id,
     created_at: new Date(pedido.created_at),

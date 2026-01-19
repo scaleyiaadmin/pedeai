@@ -20,6 +20,7 @@ export type Database = {
           id: number
           itens: string | null
           mesa: string | null
+          quantidade: string | null
           restaurante_id: string | null
           status: string | null
           Subtotal: string | null
@@ -29,6 +30,7 @@ export type Database = {
           id?: number
           itens?: string | null
           mesa?: string | null
+          quantidade?: string | null
           restaurante_id?: string | null
           status?: string | null
           Subtotal?: string | null
@@ -38,6 +40,7 @@ export type Database = {
           id?: number
           itens?: string | null
           mesa?: string | null
+          quantidade?: string | null
           restaurante_id?: string | null
           status?: string | null
           Subtotal?: string | null

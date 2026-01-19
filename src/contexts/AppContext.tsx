@@ -443,18 +443,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       // Calculate subtotal
       const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
+      // Get product names (comma separated if multiple)
+      const productNames = items.map(item => item.productName).join(', ');
+      
+      // Get total quantity
+      const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+      
+      // Format subtotal as R$ X,XX
+      const formattedSubtotal = `R$ ${subtotal.toFixed(2).replace('.', ',')}`;
 
-      // Insert into Supabase first
+      // Insert into Supabase
       const { data, error } = await supabase
         .from('Pedidos')
         .insert({
           mesa: tableId.toString(),
-          itens: JSON.stringify(items.map(item => ({
-            nome: item.productName,
-            quantidade: item.quantity,
-            preco: item.price,
-          }))),
-          Subtotal: subtotal.toString(),
+          itens: productNames,
+          quantidade: totalQuantity.toString(),
+          Subtotal: formattedSubtotal,
           status: 'pendente',
           restaurante_id: restaurantId,
         })
