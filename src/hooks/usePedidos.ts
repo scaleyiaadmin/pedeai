@@ -24,6 +24,19 @@ export interface ParsedPedido {
   created_at: Date;
 }
 
+const normalizePedidoStatus = (status: string | null | undefined): string => {
+  const s = (status ?? 'pendente').toString().trim().toLowerCase();
+
+  // Common variants coming from external integrations / humans
+  if (s === 'pendente' || s === 'pending') return 'pendente';
+  if (s === 'preparando' || s === 'preparacao' || s === 'preparação' || s === 'preparing') return 'preparando';
+  if (s === 'pronto' || s === 'ready') return 'pronto';
+  if (s === 'entregue' || s === 'delivered') return 'entregue';
+
+  // Fallback to the normalized string so UI filters are consistent
+  return s;
+};
+
 const parsePedido = (pedido: Pedido): ParsedPedido => {
   // Parse the product name from itens
   const productName = pedido.itens || '';
@@ -55,7 +68,7 @@ const parsePedido = (pedido: Pedido): ParsedPedido => {
     productName,
     quantity,
     total,
-    status: pedido.status || 'pendente',
+    status: normalizePedidoStatus(pedido.status),
     restaurante_id: pedido.restaurante_id,
     created_at: new Date(pedido.created_at),
   };

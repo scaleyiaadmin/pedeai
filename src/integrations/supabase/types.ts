@@ -123,6 +123,36 @@ export type Database = {
         }
         Relationships: []
       }
+      Usuários: {
+        Row: {
+          created_at: string
+          id: number
+          id_restaurante: string | null
+          mesa_atual: string | null
+          nome: string | null
+          quantas_vezes_foi: string | null
+          telefone: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          id_restaurante?: string | null
+          mesa_atual?: string | null
+          nome?: string | null
+          quantas_vezes_foi?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          id_restaurante?: string | null
+          mesa_atual?: string | null
+          nome?: string | null
+          quantas_vezes_foi?: string | null
+          telefone?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
