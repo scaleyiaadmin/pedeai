@@ -249,6 +249,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       createdAt: p.created_at,
     }));
     setOrders(convertedOrders);
+
+    // Keep tables in sync with orders coming from the DB (e.g. WhatsApp bot)
+    // Rule: table becomes occupied if there is at least one pedido for it.
+    const mesasComPedidos = new Set(pedidos.map(p => p.mesa));
+    setTables(prev =>
+      prev.map(t => {
+        const shouldBeOccupied = mesasComPedidos.has(t.id) || t.consumption.length > 0;
+        return shouldBeOccupied ? { ...t, status: 'occupied' } : { ...t, status: 'free' };
+      })
+    );
   }, [pedidos]);
 
   const generateTables = useCallback((count: number): Table[] => {
@@ -519,8 +529,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           : t
       ));
       setOrders(prev => prev.filter(o => o.tableId !== tableId));
+
+      // Conta paga: remove pedidos do banco para não “reocupar” a mesa ao sincronizar.
+      // Fire-and-forget (realtime vai refletir no app).
+      if (restaurantId) {
+        void supabase
+          .from('Pedidos')
+          .delete()
+          .eq('restaurante_id', restaurantId)
+          .eq('mesa', tableId.toString());
+      }
     }
-  }, [tables]);
+  }, [tables, restaurantId]);
 
   const addItemToTable = useCallback(async (tableId: number, item: OrderItem) => {
     const product = products.find(p => p.id === item.productId);
