@@ -17,6 +17,7 @@ export type Database = {
       Pedidos: {
         Row: {
           created_at: string
+          descricao: string | null
           id: number
           itens: string | null
           mesa: string | null
@@ -27,6 +28,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          descricao?: string | null
           id?: number
           itens?: string | null
           mesa?: string | null
@@ -37,6 +39,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          descricao?: string | null
           id?: number
           itens?: string | null
           mesa?: string | null
