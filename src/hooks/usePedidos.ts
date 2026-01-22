@@ -9,6 +9,7 @@ export interface Pedido {
   Subtotal: string | null;
   status: string | null;
   restaurante_id: string | null;
+  descricao?: string | null;
   created_at: string;
 }
 
@@ -21,6 +22,7 @@ export interface ParsedPedido {
   total: number;
   status: string;
   restaurante_id: string | null;
+  descricao?: string;
   created_at: Date;
 }
 
@@ -70,6 +72,7 @@ const parsePedido = (pedido: Pedido): ParsedPedido => {
     total,
     status: normalizePedidoStatus(pedido.status),
     restaurante_id: pedido.restaurante_id,
+    descricao: (pedido.descricao ?? undefined) || undefined,
     created_at: new Date(pedido.created_at),
   };
 };

@@ -25,6 +25,7 @@ export interface OrderItem {
   productName: string;
   quantity: number;
   price: number;
+  description?: string;
 }
 
 export interface Order {
@@ -240,6 +241,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         productName: item.nome,
         quantity: item.quantidade,
         price: item.preco,
+        description: p.descricao,
       })),
       station: 'kitchen' as const,
       status: p.status === 'pendente' ? 'pending' as const : 
@@ -253,10 +255,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Keep tables in sync with orders coming from the DB (e.g. WhatsApp bot)
     // Rule: table becomes occupied if there is at least one pedido for it.
     const mesasComPedidos = new Set(pedidos.map(p => p.mesa));
+
+    // Also sync table consumption from DB pedidos (source of truth).
+    const consumoPorMesa = new Map<number, OrderItem[]>();
+    for (const pedido of pedidos) {
+      const tableId = pedido.mesa;
+      const items = pedido.itens.map((it, idx) => ({
+        productId: `db-${pedido.id}-${idx}`,
+        productName: it.nome,
+        quantity: it.quantidade,
+        price: it.preco,
+        description: pedido.descricao,
+      }));
+      consumoPorMesa.set(tableId, [...(consumoPorMesa.get(tableId) ?? []), ...items]);
+    }
+
     setTables(prev =>
       prev.map(t => {
-        const shouldBeOccupied = mesasComPedidos.has(t.id) || t.consumption.length > 0;
-        return shouldBeOccupied ? { ...t, status: 'occupied' } : { ...t, status: 'free' };
+        const consumo = consumoPorMesa.get(t.id) ?? [];
+        const shouldBeOccupied = mesasComPedidos.has(t.id) || consumo.length > 0;
+        return {
+          ...t,
+          status: shouldBeOccupied ? 'occupied' : 'free',
+          // If the table was closed manually, consumption is cleared and DB rows are deleted.
+          // Otherwise, we mirror DB pedidos here so WhatsApp-created orders show up.
+          consumption: consumo,
+        };
       })
     );
   }, [pedidos]);

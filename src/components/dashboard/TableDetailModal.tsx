@@ -5,6 +5,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface TableDetailModalProps {
   table: Table;
@@ -17,6 +27,8 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
   const [searchQuery, setSearchQuery] = useState('');
   const [editingItem, setEditingItem] = useState<number | null>(null);
   const [editQuantity, setEditQuantity] = useState(1);
+  const [confirmPaidOpen, setConfirmPaidOpen] = useState(false);
+  const [itemDescription, setItemDescription] = useState('');
 
   // Get fresh table data
   const currentTable = tables.find(t => t.id === table.id) || table;
@@ -38,10 +50,12 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
       productName: product.name,
       quantity: 1,
       price: product.price,
+      description: itemDescription.trim() || undefined,
     };
     addItemToTable(currentTable.id, item);
     setIsAddingItem(false);
     setSearchQuery('');
+    setItemDescription('');
   };
 
   const handleRequestBill = () => {
@@ -50,7 +64,12 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
   };
 
   const handleCloseTable = () => {
+    setConfirmPaidOpen(true);
+  };
+
+  const confirmPaid = () => {
     closeTable(currentTable.id);
+    setConfirmPaidOpen(false);
     onClose();
   };
 
@@ -237,6 +256,17 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
                 ))}
               </div>
             </ScrollArea>
+
+            <div className="space-y-2">
+              <span className="text-sm font-medium text-foreground">Observação (opcional)</span>
+              <Input
+                placeholder="Ex.: copo sujo com bebida"
+                value={itemDescription}
+                onChange={(e) => setItemDescription(e.target.value)}
+                className="rounded-lg"
+              />
+            </div>
+
             <Button variant="outline" onClick={() => setIsAddingItem(false)} className="w-full rounded-lg">
               Cancelar
             </Button>
@@ -270,6 +300,24 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
           </div>
         )}
       </DialogContent>
+
+      {/* Confirmação: conta paga */}
+      <AlertDialog open={confirmPaidOpen} onOpenChange={setConfirmPaidOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conta foi paga?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se confirmar, a mesa será liberada e os pedidos dessa mesa serão removidos do sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Não</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPaid}>
+              Sim, liberar mesa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

@@ -112,6 +112,14 @@ const OrderQueue: React.FC = () => {
                   ))}
                 </div>
 
+                {/* Descrição / Observação */}
+                {pedido.descricao && (
+                  <div className="mb-3 rounded-lg bg-secondary/70 px-3 py-2 text-sm">
+                    <span className="text-muted-foreground">Obs:</span>{' '}
+                    <span className="text-foreground">{pedido.descricao}</span>
+                  </div>
+                )}
+
                 {/* Total */}
                 <div className="flex items-center justify-between text-sm font-semibold border-t border-border pt-2 mb-3">
                   <span className="text-foreground">Total</span>

@@ -2,10 +2,21 @@ import { useState } from 'react';
 import { Beer, Utensils, Bell, Receipt } from 'lucide-react';
 import { useApp, Table } from '@/contexts/AppContext';
 import TableDetailModal from './TableDetailModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const TableGrid: React.FC = () => {
-  const { tables, settings, filter, orders } = useApp();
+  const { tables, settings, filter, orders, closeTable } = useApp();
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [confirmPaidTableId, setConfirmPaidTableId] = useState<number | null>(null);
 
   const getTableOrders = (tableId: number) => {
     return orders.filter(o => o.tableId === tableId);
@@ -101,6 +112,21 @@ const TableGrid: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {/* Quick action: Conta paga (only when bill was requested) */}
+              {table.alert === 'bill' && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setConfirmPaidTableId(table.id);
+                  }}
+                  className="absolute bottom-2 right-2 rounded-md bg-secondary px-2 py-1 text-xs text-foreground hover:bg-secondary/80"
+                >
+                  Conta paga
+                </button>
+              )}
             </button>
           ))}
         </div>
@@ -136,6 +162,34 @@ const TableGrid: React.FC = () => {
           onClose={() => setSelectedTable(null)} 
         />
       )}
+
+      {/* Confirmação: conta paga (na aba Operação) */}
+      <AlertDialog
+        open={confirmPaidTableId !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmPaidTableId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conta foi paga?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirmando, a mesa será liberada e os pedidos dessa mesa serão removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Não</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmPaidTableId) closeTable(confirmPaidTableId);
+                setConfirmPaidTableId(null);
+              }}
+            >
+              Sim, liberar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
