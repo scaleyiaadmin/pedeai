@@ -475,6 +475,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     try {
+      // Consolidate optional description (DB has a single `descricao` field)
+      const descricao = items
+        .map(i => i.description?.toString().trim())
+        .filter(Boolean)
+        .join(' | ')
+        .slice(0, 500);
+
       // Calculate subtotal
       const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       
@@ -497,6 +504,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           Subtotal: formattedSubtotal,
           status: 'pendente',
           restaurante_id: restaurantId,
+          descricao: descricao || null,
         })
         .select()
         .single();

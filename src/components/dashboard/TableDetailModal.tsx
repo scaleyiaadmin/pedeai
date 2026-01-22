@@ -229,6 +229,16 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
         {/* Add Item Section */}
         {isAddingItem ? (
           <div className="mt-4 space-y-3 border-t border-border pt-4">
+             <div className="space-y-2">
+               <span className="text-sm font-medium text-foreground">Observação (opcional)</span>
+               <Input
+                 placeholder="Digite a observação e depois escolha o item (ex.: sem gelo)"
+                 value={itemDescription}
+                 onChange={(e) => setItemDescription(e.target.value)}
+                 className="rounded-lg"
+               />
+             </div>
+
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -256,16 +266,6 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
                 ))}
               </div>
             </ScrollArea>
-
-            <div className="space-y-2">
-              <span className="text-sm font-medium text-foreground">Observação (opcional)</span>
-              <Input
-                placeholder="Ex.: copo sujo com bebida"
-                value={itemDescription}
-                onChange={(e) => setItemDescription(e.target.value)}
-                className="rounded-lg"
-              />
-            </div>
 
             <Button variant="outline" onClick={() => setIsAddingItem(false)} className="w-full rounded-lg">
               Cancelar
