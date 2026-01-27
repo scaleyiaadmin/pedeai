@@ -105,8 +105,8 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
           <DialogTitle className="text-xl font-bold text-foreground flex items-center justify-between">
             <span>Mesa {currentTable.id}</span>
             <span className={`text-sm px-3 py-1 rounded-full ${currentTable.status === 'occupied'
-                ? 'bg-occupied/20 text-occupied'
-                : 'bg-free/20 text-free'
+              ? 'bg-occupied/20 text-occupied'
+              : 'bg-free/20 text-free'
               }`}>
               {currentTable.alert === 'bill'
                 ? '💳 Pagamento Pendente'
@@ -130,7 +130,7 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
         )}
 
         {/* Consumption List */}
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollArea className="flex-1 min-h-0 max-h-[380px]">
           <div className="pr-4">
             <h3 className="font-semibold text-foreground mb-3 flex items-center justify-between">
               <span>Consumo</span>
