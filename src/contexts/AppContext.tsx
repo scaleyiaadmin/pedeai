@@ -237,6 +237,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         totalTables: parseInt(restaurant.quantidade_mesas || '12', 10),
         kitchenClosingTime: restaurant.horario_fecha_cozinha || undefined,
         whatsappNumber: restaurant.telefone || '',
+        openingTime: restaurant.horario_abertura || '11:00',
+        closingTime: restaurant.horario_fechamento || '23:00',
+        autoCloseTable: restaurant.fechar_mesa_auto ?? true,
+        flashingEnabled: restaurant.alertas_piscantes ?? true,
+        soundEnabled: restaurant.sons_habilitados ?? true,
+        lowStockAlert: restaurant.alerta_estoque_baixo ?? 15,
+        criticalStockAlert: restaurant.alerta_estoque_critico ?? 5,
       }));
     }
   }, [restaurant]);
@@ -397,6 +404,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           quantidade_mesas: settings.totalTables.toString(),
           horario_fecha_cozinha: settings.kitchenClosingTime || null,
           telefone: settings.whatsappNumber || null,
+          horario_abertura: settings.openingTime,
+          horario_fechamento: settings.closingTime,
+          fechar_mesa_auto: settings.autoCloseTable,
+          alertas_piscantes: settings.flashingEnabled,
+          sons_habilitados: settings.soundEnabled,
+          alerta_estoque_baixo: settings.lowStockAlert,
+          alerta_estoque_critico: settings.criticalStockAlert,
         })
         .eq('id', restaurantId);
 

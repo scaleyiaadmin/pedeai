@@ -8,6 +8,13 @@ export interface Restaurant {
   telefone: string | null;
   quantidade_mesas: string | null;
   horario_fecha_cozinha: string | null;
+  horario_abertura: string | null;
+  horario_fechamento: string | null;
+  fechar_mesa_auto: boolean | null;
+  alertas_piscantes: boolean | null;
+  sons_habilitados: boolean | null;
+  alerta_estoque_baixo: number | null;
+  alerta_estoque_critico: number | null;
   created_at: string;
 }
 
@@ -31,7 +38,7 @@ export const useRestaurant = (restaurantId: string | null) => {
         .single();
 
       if (error) throw error;
-      setRestaurant(data);
+      setRestaurant(data as any as Restaurant);
     } catch (err) {
       console.error('Error fetching restaurant:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar restaurante');
@@ -50,7 +57,7 @@ export const useRestaurant = (restaurantId: string | null) => {
         .eq('id', restaurantId);
 
       if (error) throw error;
-      
+
       // Update local state
       setRestaurant(prev => prev ? { ...prev, ...updates } : null);
       return { error: null };
