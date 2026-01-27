@@ -37,7 +37,7 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
   const serviceFee = settings.serviceFee > 0 ? subtotal * (settings.serviceFee / 100) : 0;
   const total = subtotal + serviceFee;
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = products.filter(p =>
     p.isActive && (
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.category.toLowerCase().includes(searchQuery.toLowerCase())
@@ -104,12 +104,11 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-foreground flex items-center justify-between">
             <span>Mesa {currentTable.id}</span>
-            <span className={`text-sm px-3 py-1 rounded-full ${
-              currentTable.status === 'occupied' 
-                ? 'bg-occupied/20 text-occupied' 
+            <span className={`text-sm px-3 py-1 rounded-full ${currentTable.status === 'occupied'
+                ? 'bg-occupied/20 text-occupied'
                 : 'bg-free/20 text-free'
-            }`}>
-              {currentTable.alert === 'bill' 
+              }`}>
+              {currentTable.alert === 'bill'
                 ? '💳 Pagamento Pendente'
                 : currentTable.status === 'occupied' ? 'Ocupada' : 'Livre'
               }
@@ -119,9 +118,8 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
 
         {/* Alert Banner */}
         {currentTable.alert && (
-          <div className={`p-3 rounded-lg flex items-center justify-between ${
-            currentTable.alert === 'waiter' ? 'bg-warning/20 text-warning-foreground' : 'bg-info/20 text-info-foreground'
-          }`}>
+          <div className={`p-3 rounded-lg flex items-center justify-between ${currentTable.alert === 'waiter' ? 'bg-warning/20 text-warning-foreground' : 'bg-info/20 text-info-foreground'
+            }`}>
             <span className="font-medium">
               {currentTable.alert === 'waiter' ? '🔔 Garçom chamado' : '💳 Conta solicitada'}
             </span>
@@ -136,23 +134,14 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
           <div className="pr-4">
             <h3 className="font-semibold text-foreground mb-3 flex items-center justify-between">
               <span>Consumo</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsAddingItem(true)}
-                className="text-primary hover:text-primary gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                Adicionar
-              </Button>
             </h3>
             {groupedConsumption.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">Nenhum item consumido</p>
             ) : (
               <div className="space-y-2">
                 {groupedConsumption.map((item, idx) => (
-                  <div 
-                    key={`${item.productId}-${idx}`} 
+                  <div
+                    key={`${item.productId}-${idx}`}
                     className="flex items-center justify-between bg-secondary/50 rounded-lg p-3"
                   >
                     <div className="flex-1">
@@ -229,15 +218,15 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
         {/* Add Item Section */}
         {isAddingItem ? (
           <div className="mt-4 space-y-3 border-t border-border pt-4">
-             <div className="space-y-2">
-               <span className="text-sm font-medium text-foreground">Observação (opcional)</span>
-               <Input
-                 placeholder="Digite a observação e depois escolha o item (ex.: sem gelo)"
-                 value={itemDescription}
-                 onChange={(e) => setItemDescription(e.target.value)}
-                 className="rounded-lg"
-               />
-             </div>
+            <div className="space-y-2">
+              <span className="text-sm font-medium text-foreground">Observação (opcional)</span>
+              <Input
+                placeholder="Digite a observação e depois escolha o item (ex.: sem gelo)"
+                value={itemDescription}
+                onChange={(e) => setItemDescription(e.target.value)}
+                className="rounded-lg"
+              />
+            </div>
 
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -273,14 +262,14 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
           </div>
         ) : (
           <div className="mt-4 grid grid-cols-3 gap-3">
-            <Button 
+            <Button
               onClick={() => setIsAddingItem(true)}
               className="h-12 rounded-lg bg-primary text-primary-foreground"
             >
               <Plus className="w-4 h-4 mr-1" />
               Item
             </Button>
-            <Button 
+            <Button
               variant="outline"
               onClick={handleRequestBill}
               disabled={currentTable.alert === 'bill' || groupedConsumption.length === 0}
@@ -289,7 +278,7 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
               <Receipt className="w-4 h-4 mr-1" />
               Conta
             </Button>
-            <Button 
+            <Button
               variant="destructive"
               onClick={handleCloseTable}
               className="h-12 rounded-lg"

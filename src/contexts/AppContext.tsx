@@ -206,13 +206,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [filter, setFilter] = useState<'all' | 'bar' | 'kitchen'>('all');
 
   // Use Supabase hooks
-  const { restaurant, updateRestaurant } = useRestaurant(restaurantId);
-  const { pedidos, dailyMetrics } = usePedidos(restaurantId);
+  const { restaurant, updateRestaurant, refetch: refetchRestaurant } = useRestaurant(restaurantId);
+  const { pedidos, dailyMetrics, refetch: refetchPedidos } = usePedidos(restaurantId);
   const {
     produtos: produtosDb,
     addProduto,
     updateProduto,
-    deleteProduto
+    deleteProduto,
+    refetch: refetchProdutos
   } = useProdutos(restaurantId);
 
   // Check for existing session on mount
@@ -227,6 +228,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     setLoadingData(false);
   }, []);
+
+  // Poll for updates every 2 seconds
+  useEffect(() => {
+    if (!restaurantId) return;
+
+    const interval = setInterval(() => {
+      refetchPedidos();
+      refetchProdutos();
+      refetchRestaurant();
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [restaurantId, refetchPedidos, refetchProdutos, refetchRestaurant]);
 
   // Sync restaurant data with settings
   useEffect(() => {
