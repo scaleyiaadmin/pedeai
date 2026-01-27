@@ -130,72 +130,78 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
         )}
 
         {/* Consumption List */}
-        <ScrollArea className="flex-1 min-h-0 max-h-[380px]">
-          <div className="pr-4">
-            <h3 className="font-semibold text-foreground mb-3 flex items-center justify-between">
+        <div className="flex-1 overflow-y-scroll pr-2 max-h-[320px] custom-scrollbar">
+          <div className="space-y-3">
+            <h3 className="font-semibold text-foreground mb-3 flex items-center justify-between sticky top-0 bg-card py-2 z-10">
               <span>Consumo</span>
             </h3>
             {groupedConsumption.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">Nenhum item consumido</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {groupedConsumption.map((item, idx) => (
                   <div
                     key={`${item.productId}-${idx}`}
-                    className="flex items-center justify-between bg-secondary/50 rounded-lg p-3"
+                    className="flex items-center justify-between bg-secondary/40 border border-border/50 rounded-xl p-4 shadow-sm"
                   >
                     <div className="flex-1">
-                      <span className="font-medium text-foreground">{item.productName}</span>
+                      <span className="font-bold text-foreground block tracking-tight">{item.productName}</span>
                       <div className="flex items-center gap-2 mt-1">
                         {editingItem === idx ? (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 bg-background p-1 rounded-lg border border-border">
                             <Button
                               size="icon"
-                              variant="outline"
-                              className="h-6 w-6"
+                              variant="ghost"
+                              className="h-7 w-7 rounded-md"
                               onClick={() => setEditQuantity(Math.max(1, editQuantity - 1))}
                             >
-                              <Minus className="w-3 h-3" />
+                              <Minus className="w-3.5 h-3.5" />
                             </Button>
-                            <span className="w-8 text-center font-medium">{editQuantity}</span>
+                            <span className="w-8 text-center font-bold text-sm">{editQuantity}</span>
                             <Button
                               size="icon"
-                              variant="outline"
-                              className="h-6 w-6"
+                              variant="ghost"
+                              className="h-7 w-7 rounded-md"
                               onClick={() => setEditQuantity(editQuantity + 1)}
                             >
-                              <Plus className="w-3 h-3" />
+                              <Plus className="w-3.5 h-3.5" />
                             </Button>
-                            <Button size="sm" variant="outline" onClick={cancelEdit}>
+                            <div className="w-px h-4 bg-border mx-1" />
+                            <Button size="sm" variant="default" className="h-7 px-3 text-xs" onClick={cancelEdit}>
+                              Salvar
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 px-3 text-xs" onClick={cancelEdit}>
                               Cancelar
                             </Button>
                           </div>
                         ) : (
-                          <>
-                            <span className="text-sm text-muted-foreground">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-muted-foreground bg-secondary/80 px-2 py-0.5 rounded-md border border-border/30">
                               {item.quantity}x R$ {item.price.toFixed(2)}
                             </span>
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-6 w-6"
+                              className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary transition-colors"
                               onClick={() => startEditItem(idx, item.quantity)}
                             >
-                              <Edit2 className="w-3 h-3 text-muted-foreground" />
+                              <Edit2 className="w-3.5 h-3.5" />
                             </Button>
-                          </>
+                          </div>
                         )}
                       </div>
                     </div>
-                    <span className="font-semibold text-foreground">
-                      R$ {(item.price * item.quantity).toFixed(2)}
-                    </span>
+                    <div className="text-right pl-4">
+                      <span className="font-black text-primary">
+                        R$ {(item.price * item.quantity).toFixed(2)}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Total Section */}
         <div className="border-t border-border pt-4 mt-4 space-y-2">
