@@ -374,14 +374,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
 
   const adminLogin = useCallback(async (email: string, password: string): Promise<AuthResult> => {
-    // Para simplificar, hardcoded admin, mas estruturado para expansão
-    // Em um sistema real, isso verificaria uma tabela de admins ou usaria Supabase Auth roles
-    if (email === 'admin@pedeai.com' && password === 'admin123') {
+    try {
+      const { data, error } = await supabase
+        .from('Admin_acessos' as any)
+        .select('*')
+        .eq('email', email.trim())
+        .maybeSingle();
+
+      const adminData = data as any;
+
+      if (error || !adminData) {
+        return { success: false, error: 'Credenciais de administrador inválidas' };
+      }
+
+      if (adminData.senha !== password) {
+        return { success: false, error: 'Credenciais de administrador inválidas' };
+      }
+
       localStorage.setItem('pedeai_admin_auth', 'true');
       setIsAdminAuthenticated(true);
       return { success: true };
+    } catch (err) {
+      console.error('Admin login error:', err);
+      return { success: false, error: 'Erro ao realizar login de administrador' };
     }
-    return { success: false, error: 'Credenciais de administrador inválidas' };
   }, []);
 
   const adminLogout = useCallback(() => {
