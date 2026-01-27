@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { 
-  X, Settings2, Package, Warehouse, Users, CreditCard, Printer, 
+import {
+  X, Settings2, Package, Warehouse, Users, CreditCard, Printer,
   Plus, Search, Edit2, Trash2, Save, MessageSquare, Send, Calendar,
   TrendingUp, TrendingDown, RotateCcw, AlertTriangle, Check, Clock,
   Phone, Mail, Tag, Gift, Volume2, VolumeX, Wifi, WifiOff, Loader2
@@ -18,33 +18,43 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 
+const PRODUCT_CATEGORIES = [
+  'Bebida',
+  'Comida',
+  'Petisco',
+  'Porção',
+  'Sobremesa',
+  'Outros'
+];
+
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const { 
+  const {
     settings, updateSettings, saveSettingsToSupabase,
     products, addProduct, updateProduct, deleteProduct,
     customers, addCustomer, updateCustomer, deleteCustomer,
     stockMovements, addStockMovement,
     campaigns, addCampaign, updateCampaign, deleteCampaign
   } = useApp();
-  
+
   const [isSaving, setIsSaving] = useState(false);
-  
+
   const [activeTab, setActiveTab] = useState('operation');
   const [productSearch, setProductSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [productFilter, setProductFilter] = useState<'all' | 'bar' | 'kitchen'>('all');
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [editingProductData, setEditingProductData] = useState<Partial<Product> | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<string | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [showAddCampaign, setShowAddCampaign] = useState(false);
   const [showStockAdjust, setShowStockAdjust] = useState<string | null>(null);
-  
+
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '',
     price: 0,
@@ -81,7 +91,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   });
 
   const handleAddProduct = async () => {
-    if (newProduct.name && newProduct.price) {
+    if (newProduct.name && (newProduct.price !== undefined)) {
       await addProduct({
         name: newProduct.name,
         price: newProduct.price,
@@ -167,14 +177,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleUpdateProductClick = async (productId: string) => {
+    if (editingProductData) {
+      await updateProduct(productId, editingProductData);
+      setEditingProduct(null);
+      setEditingProductData(null);
+    }
+  };
+
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-                         p.category.toLowerCase().includes(productSearch.toLowerCase());
+      p.category.toLowerCase().includes(productSearch.toLowerCase());
     const matchesFilter = productFilter === 'all' || p.station === productFilter;
     return matchesSearch && matchesFilter;
   });
 
-  const filteredCustomers = customers.filter(c => 
+  const filteredCustomers = customers.filter(c =>
     c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
     c.phone.includes(customerSearch)
   );
@@ -205,8 +223,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               <Settings2 className="w-5 h-5 text-primary" />
               Configurações
             </DialogTitle>
-            <Button 
-              onClick={handleSaveSettings} 
+            <Button
+              onClick={handleSaveSettings}
               disabled={isSaving}
               className="gap-2"
             >
@@ -418,7 +436,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         <Switch
                           checked={printer.isActive}
                           onCheckedChange={(checked) => {
-                            const updatedPrinters = settings.printers.map(p => 
+                            const updatedPrinters = settings.printers.map(p =>
                               p.id === printer.id ? { ...p, isActive: checked } : p
                             );
                             updateSettings({ printers: updatedPrinters });
@@ -485,18 +503,27 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       <Input
                         type="number"
                         step="0.01"
-                        value={newProduct.price}
-                        onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) || 0 })}
+                        value={newProduct.price === 0 ? '' : newProduct.price}
+                        placeholder="0.00"
+                        onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                         className="rounded-lg"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>Categoria</Label>
-                      <Input
+                      <Select
                         value={newProduct.category}
-                        onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                        className="rounded-lg"
-                      />
+                        onValueChange={(v) => setNewProduct({ ...newProduct, category: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PRODUCT_CATEGORIES.map((cat) => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label>Estação</Label>
@@ -517,8 +544,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       <Label>Estoque Inicial</Label>
                       <Input
                         type="number"
-                        value={newProduct.stock}
-                        onChange={(e) => setNewProduct({ ...newProduct, stock: parseInt(e.target.value) || 0 })}
+                        value={newProduct.stock === 0 ? '' : newProduct.stock}
+                        placeholder="0"
+                        onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                         className="rounded-lg"
                       />
                     </div>
@@ -526,8 +554,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       <Label>Estoque Mínimo</Label>
                       <Input
                         type="number"
-                        value={newProduct.minStock}
-                        onChange={(e) => setNewProduct({ ...newProduct, minStock: parseInt(e.target.value) || 10 })}
+                        value={newProduct.minStock === 0 ? '' : newProduct.minStock}
+                        placeholder="0"
+                        onChange={(e) => setNewProduct({ ...newProduct, minStock: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                         className="rounded-lg"
                       />
                     </div>
@@ -553,36 +582,43 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               {/* Products List */}
               <div className="space-y-2">
                 {filteredProducts.map((product) => (
-                  <div 
-                    key={product.id} 
-                    className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
-                      product.isActive 
-                        ? 'bg-card border-border' 
+                  <div
+                    key={product.id}
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-all ${product.isActive
+                        ? 'bg-card border-border'
                         : 'bg-muted/50 border-muted opacity-60'
-                    }`}
+                      }`}
                   >
                     {editingProduct === product.id ? (
                       <div className="flex-1 grid grid-cols-6 gap-3 items-center">
                         <Input
-                          value={product.name}
-                          onChange={(e) => updateProduct(product.id, { name: e.target.value })}
+                          value={editingProductData?.name ?? product.name}
+                          onChange={(e) => setEditingProductData({ ...editingProductData, name: e.target.value })}
                           className="rounded-lg"
                         />
                         <Input
                           type="number"
                           step="0.01"
-                          value={product.price}
-                          onChange={(e) => updateProduct(product.id, { price: parseFloat(e.target.value) || 0 })}
-                          className="rounded-lg"
-                        />
-                        <Input
-                          value={product.category}
-                          onChange={(e) => updateProduct(product.id, { category: e.target.value })}
+                          value={editingProductData?.price ?? product.price}
+                          onChange={(e) => setEditingProductData({ ...editingProductData, price: parseFloat(e.target.value) || 0 })}
                           className="rounded-lg"
                         />
                         <Select
-                          value={product.station}
-                          onValueChange={(v) => updateProduct(product.id, { station: v as 'bar' | 'kitchen' })}
+                          value={editingProductData?.category ?? product.category}
+                          onValueChange={(v) => setEditingProductData({ ...editingProductData, category: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PRODUCT_CATEGORIES.map((cat) => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          value={editingProductData?.station ?? product.station}
+                          onValueChange={(v) => setEditingProductData({ ...editingProductData, station: v as 'bar' | 'kitchen' })}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -594,13 +630,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         </Select>
                         <Input
                           type="number"
-                          value={product.stock}
-                          onChange={(e) => updateProduct(product.id, { stock: parseInt(e.target.value) || 0 })}
+                          value={editingProductData?.stock ?? product.stock}
+                          onChange={(e) => setEditingProductData({ ...editingProductData, stock: parseInt(e.target.value) || 0 })}
                           className="rounded-lg"
                         />
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={() => setEditingProduct(null)} className="gap-1">
+                          <Button size="sm" onClick={() => handleUpdateProductClick(product.id)} className="gap-1">
                             <Check className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => { setEditingProduct(null); setEditingProductData(null); }} className="gap-1">
+                            <X className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
@@ -625,13 +664,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                           <Badge variant={product.station === 'bar' ? 'default' : 'secondary'}>
                             {product.station === 'bar' ? '🍺 Bar' : '🍽️ Cozinha'}
                           </Badge>
-                          <div className={`text-center min-w-[60px] px-2 py-1 rounded-lg ${
-                            product.stock <= settings.criticalStockAlert 
-                              ? 'bg-destructive/20 text-destructive' 
+                          <div className={`text-center min-w-[60px] px-2 py-1 rounded-lg ${product.stock <= settings.criticalStockAlert
+                              ? 'bg-destructive/20 text-destructive'
                               : product.stock <= (product.minStock || settings.lowStockAlert)
                                 ? 'bg-warning/20 text-warning'
                                 : 'bg-success/20 text-success'
-                          }`}>
+                            }`}>
                             <p className="font-bold">{product.stock}</p>
                             <p className="text-xs">un.</p>
                           </div>
@@ -707,15 +745,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <h3 className="font-semibold text-foreground">Gestão de Estoque</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {products.map((product) => (
-                    <div 
-                      key={product.id} 
-                      className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-md ${
-                        product.stock <= settings.criticalStockAlert 
-                          ? 'border-destructive bg-destructive/10' 
+                    <div
+                      key={product.id}
+                      className={`p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-md ${product.stock <= settings.criticalStockAlert
+                          ? 'border-destructive bg-destructive/10'
                           : product.stock <= (product.minStock || settings.lowStockAlert)
-                            ? 'border-warning bg-warning/10' 
+                            ? 'border-warning bg-warning/10'
                             : 'border-success bg-success/10'
-                      }`}
+                        }`}
                       onClick={() => setShowStockAdjust(showStockAdjust === product.id ? null : product.id)}
                     >
                       <div className="flex justify-between items-start">
@@ -732,10 +769,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         <span className="text-sm font-normal text-muted-foreground ml-1">un.</span>
                       </p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        {product.stock <= settings.criticalStockAlert 
-                          ? '🔴 Estoque crítico!' 
-                          : product.stock <= (product.minStock || settings.lowStockAlert) 
-                            ? '🟡 Estoque baixo' 
+                        {product.stock <= settings.criticalStockAlert
+                          ? '🔴 Estoque crítico!'
+                          : product.stock <= (product.minStock || settings.lowStockAlert)
+                            ? '🟡 Estoque baixo'
                             : '🟢 OK'}
                       </p>
 
@@ -774,7 +811,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                             onChange={(e) => setStockAdjustment({ ...stockAdjustment, reason: e.target.value })}
                             className="rounded-lg"
                           />
-                          <Button 
+                          <Button
                             onClick={() => handleStockAdjustment(product.id, product.name)}
                             className="w-full"
                             disabled={!stockAdjustment.quantity || !stockAdjustment.reason}
@@ -798,9 +835,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   {stockMovements.slice(0, 10).map((movement) => (
                     <div key={movement.id} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          movement.type === 'in' ? 'bg-success/20' : 'bg-destructive/20'
-                        }`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${movement.type === 'in' ? 'bg-success/20' : 'bg-destructive/20'
+                          }`}>
                           {movement.type === 'in' ? (
                             <TrendingUp className="w-4 h-4 text-success" />
                           ) : (
@@ -1039,7 +1075,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                                 const current = newCampaign.targetTags || [];
                                 setNewCampaign({
                                   ...newCampaign,
-                                  targetTags: current.includes(tag) 
+                                  targetTags: current.includes(tag)
                                     ? current.filter(t => t !== tag)
                                     : [...current, tag]
                                 });
@@ -1069,11 +1105,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         <div className="flex items-center gap-2">
                           <h4 className="font-semibold text-foreground">{campaign.name}</h4>
                           <Badge variant={
-                            campaign.status === 'sent' ? 'default' : 
-                            campaign.status === 'scheduled' ? 'secondary' : 'outline'
+                            campaign.status === 'sent' ? 'default' :
+                              campaign.status === 'scheduled' ? 'secondary' : 'outline'
                           }>
-                            {campaign.status === 'sent' ? 'Enviada' : 
-                             campaign.status === 'scheduled' ? 'Agendada' : 'Rascunho'}
+                            {campaign.status === 'sent' ? 'Enviada' :
+                              campaign.status === 'scheduled' ? 'Agendada' : 'Rascunho'}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">{campaign.message}</p>
