@@ -22,7 +22,7 @@ interface TableDetailModalProps {
 }
 
 const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) => {
-  const { products, addItemToTable, closeTable, updateTableAlert, tables, settings } = useApp();
+  const { products, addItemToTable, closeTable, updateTableAlert, tables, settings, requestBill } = useApp();
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingItem, setEditingItem] = useState<number | null>(null);
@@ -59,8 +59,8 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
   };
 
   const handleRequestBill = () => {
-    // Set alert to bill (payment pending status)
-    updateTableAlert(currentTable.id, 'bill');
+    // Set alert to bill (payment pending status) and update DB
+    requestBill(currentTable.id);
   };
 
   const handleCloseTable = () => {
@@ -109,7 +109,7 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
               : 'bg-free/20 text-free'
               }`}>
               {currentTable.alert === 'bill'
-                ? '💳 Pagamento Pendente'
+                ? 'Pagamento Pendente'
                 : currentTable.status === 'occupied' ? 'Ocupada' : 'Livre'
               }
             </span>

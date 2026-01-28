@@ -161,6 +161,7 @@ interface AppContextType {
   deletePedido: (pedidoId: number) => Promise<{ error: string | null }>;
   dailyMetrics: () => { totalSales: number; pendingOrders: number; topProducts: any[]; totalOrders: number };
   loadingPedidos: boolean;
+  requestBill: (tableId: number) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -298,6 +299,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Keep tables in sync with orders coming from the DB (e.g. WhatsApp bot)
     // Rule: table becomes occupied if there is at least one pedido for it.
     const mesasComPedidos = new Set(pedidos.map(p => p.mesa));
+    const mesasComContaPedida = new Set(pedidos.filter(p => p.status === 'pagamento_pendente').map(p => p.mesa));
 
     // Also sync table consumption from DB pedidos (source of truth).
     const consumoPorMesa = new Map<number, OrderItem[]>();
@@ -317,11 +319,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       prev.map(t => {
         const consumo = consumoPorMesa.get(t.id) ?? [];
         const shouldBeOccupied = mesasComPedidos.has(t.id) || consumo.length > 0;
+        const hasBillRequested = mesasComContaPedida.has(t.id);
+
         return {
           ...t,
           status: shouldBeOccupied ? 'occupied' : 'free',
-          // If the table was closed manually, consumption is cleared and DB rows are deleted.
-          // Otherwise, we mirror DB pedidos here so WhatsApp-created orders show up.
+          alert: hasBillRequested ? 'bill' : t.alert === 'bill' ? null : t.alert,
           consumption: consumo,
         };
       })
@@ -654,6 +657,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [restaurantId]);
 
+  const requestBill = useCallback(async (tableId: number) => {
+    if (!restaurantId) return;
+
+    try {
+      // Optimistic update
+      setTables(prev => prev.map(t => t.id === tableId ? { ...t, alert: 'bill' } : t));
+
+      // Update all orders for this table to 'pagamento_pendente'
+      const { error } = await supabase
+        .from('Pedidos')
+        .update({ status: 'pagamento_pendente' })
+        .eq('restaurante_id', restaurantId)
+        .eq('mesa', tableId.toString());
+
+      if (error) throw error;
+
+      toast.info(`Imprimindo conta da mesa ${tableId}...`, {
+        icon: '🖨️',
+      });
+
+      // Silent refetch to sync
+      refetchPedidos({ silent: true });
+    } catch (err) {
+      console.error('Error requesting bill:', err);
+      toast.error('Erro ao solicitar conta');
+    }
+  }, [restaurantId, refetchPedidos]);
+
   const deliverOrder = useCallback((orderId: string) => {
     const order = orders.find(o => o.id === orderId);
     if (order) {
@@ -780,6 +811,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       deletePedido,
       dailyMetrics,
       loadingPedidos,
+      requestBill,
     }}>
       {children}
     </AppContext.Provider>

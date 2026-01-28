@@ -61,7 +61,7 @@ const TableGrid: React.FC = () => {
             Mesas ({tables.length})
           </h2>
         </div>
-        
+
         {/* Responsive Grid - Optimized for tablets */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 touch-pan-y">
           {filteredTables.map((table) => (
@@ -73,7 +73,9 @@ const TableGrid: React.FC = () => {
                 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]
                 touch-manipulation select-none
                 min-h-[100px] flex flex-col items-center justify-center
-                ${table.status === 'occupied' ? 'border-occupied' : 'border-free'}
+                ${table.status === 'occupied'
+                  ? table.alert === 'bill' ? 'border-info bg-info/10' : 'border-occupied'
+                  : 'border-free'}
                 ${getAlertClass(table)}
               `}
             >
@@ -137,10 +139,10 @@ const TableGrid: React.FC = () => {
         <div className="flex items-center justify-center gap-6 flex-wrap">
           {legendItems.map((item, idx) => (
             <div key={idx} className="flex items-center gap-2">
-              <div className={`w-6 h-6 rounded-md border-2 ${item.borderColor} ${item.color} flex items-center justify-center`}>
+              <div className={`w-6 h-6 rounded-md border-2 ${item.borderColor} ${item.color} flex items-center justify-center shadow-sm`}>
                 {item.icon && <item.icon className="w-3 h-3" />}
               </div>
-              <span className="text-xs text-muted-foreground">{item.label}</span>
+              <span className="text-xs text-muted-foreground font-medium">{item.label}</span>
             </div>
           ))}
           <div className="flex items-center gap-4 border-l border-border pl-4">
@@ -157,9 +159,9 @@ const TableGrid: React.FC = () => {
       </div>
 
       {selectedTable && (
-        <TableDetailModal 
-          table={selectedTable} 
-          onClose={() => setSelectedTable(null)} 
+        <TableDetailModal
+          table={selectedTable}
+          onClose={() => setSelectedTable(null)}
         />
       )}
 
