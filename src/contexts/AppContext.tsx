@@ -219,6 +219,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     loading: loadingPedidos,
     updatePedidoStatus,
     deletePedido,
+    updateTablePedidosStatus,
     refetch: refetchPedidos
   } = usePedidos(restaurantId);
   const {
@@ -297,13 +298,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setOrders(convertedOrders);
 
     // Keep tables in sync with orders coming from the DB (e.g. WhatsApp bot)
-    // Rule: table becomes occupied if there is at least one pedido for it.
-    const mesasComPedidos = new Set(pedidos.map(p => p.mesa));
-    const mesasComContaPedida = new Set(pedidos.filter(p => p.status === 'pagamento_pendente').map(p => p.mesa));
+    // Rule: table becomes occupied if there is at least one active (non-closed) pedido for it.
+    const activePedidos = pedidos.filter(p => p.status !== 'fechado');
+    const mesasComPedidos = new Set(activePedidos.map(p => p.mesa));
+    const mesasComContaPedida = new Set(activePedidos.filter(p => p.status === 'pagamento_pendente').map(p => p.mesa));
 
-    // Also sync table consumption from DB pedidos (source of truth).
+    // Also sync table consumption from DB active pedidos (source of truth).
     const consumoPorMesa = new Map<number, OrderItem[]>();
-    for (const pedido of pedidos) {
+    for (const pedido of activePedidos) {
       const tableId = pedido.mesa;
       const items = pedido.itens.map((it, idx) => ({
         productId: `db-${pedido.id}-${idx}`,
@@ -720,14 +722,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ));
       setOrders(prev => prev.filter(o => o.tableId !== tableId));
 
-      // Conta paga: remove pedidos do banco para não “reocupar” a mesa ao sincronizar.
-      // Fire-and-forget (realtime vai refletir no app).
+      // Mudar status para 'fechado' em vez de deletar para manter histórico.
       if (restaurantId) {
-        void supabase
-          .from('Pedidos')
-          .delete()
-          .eq('restaurante_id', restaurantId)
-          .eq('mesa', tableId.toString());
+        updateTablePedidosStatus(tableId, 'fechado');
       }
     }
   }, [tables, restaurantId]);

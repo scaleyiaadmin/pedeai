@@ -202,6 +202,32 @@ export const usePedidos = (restaurantId: string | null) => {
     }
   }, [fetchPedidos]);
 
+  const updateTablePedidosStatus = useCallback(async (tableId: number, status: string) => {
+    if (!restaurantId) return { error: 'No restaurant ID' };
+
+    try {
+      // Optimistic update
+      const normalizedStatus = normalizePedidoStatus(status);
+      setPedidos(prev =>
+        prev.map(p => p.mesa === tableId ? { ...p, status: normalizedStatus } : p)
+      );
+
+      const { error } = await supabase
+        .from('Pedidos')
+        .update({ status })
+        .eq('restaurante_id', restaurantId)
+        .eq('mesa', tableId.toString())
+        .neq('status', 'fechado'); // Don't re-close already closed orders
+
+      if (error) throw error;
+      return { error: null };
+    } catch (err) {
+      console.error('Error updating table pedidos:', err);
+      fetchPedidos({ silent: true });
+      return { error: err instanceof Error ? err.message : 'Erro ao atualizar pedidos da mesa' };
+    }
+  }, [restaurantId, fetchPedidos]);
+
   // Calculate daily metrics
   const dailyMetrics = useCallback(() => {
     const today = new Date();
@@ -247,6 +273,7 @@ export const usePedidos = (restaurantId: string | null) => {
     error,
     updatePedidoStatus,
     deletePedido,
+    updateTablePedidosStatus,
     refetch: fetchPedidos,
     dailyMetrics,
   };
