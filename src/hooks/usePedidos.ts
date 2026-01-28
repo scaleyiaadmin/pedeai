@@ -53,20 +53,20 @@ const normalizePedidoStatus = (status: string | null | undefined): string => {
 const parsePedido = (pedido: Pedido): ParsedPedido => {
   // Parse the product name from itens
   const productName = pedido.itens || '';
-  
+
   // Parse quantity
   const quantity = parseInt(pedido.quantidade || '1', 10);
-  
+
   // Parse subtotal - remove "R$ " and convert comma to dot
   let total = 0;
   if (pedido.Subtotal) {
     const cleanSubtotal = pedido.Subtotal.replace('R$', '').replace(',', '.').trim();
     total = parseFloat(cleanSubtotal) || 0;
   }
-  
+
   // Calculate unit price
   const unitPrice = quantity > 0 ? total / quantity : 0;
-  
+
   // Create items array for backward compatibility
   const itens = productName ? [{
     nome: productName,
@@ -138,13 +138,13 @@ export const usePedidos = (restaurantId: string | null) => {
         },
         (payload) => {
           console.log('Realtime update:', payload);
-          
+
           if (payload.eventType === 'INSERT') {
             const newPedido = parsePedido(payload.new as Pedido);
             setPedidos(prev => [newPedido, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
             const updatedPedido = parsePedido(payload.new as Pedido);
-            setPedidos(prev => 
+            setPedidos(prev =>
               prev.map(p => p.id === updatedPedido.id ? updatedPedido : p)
             );
           } else if (payload.eventType === 'DELETE') {
@@ -162,6 +162,11 @@ export const usePedidos = (restaurantId: string | null) => {
 
   const updatePedidoStatus = useCallback(async (pedidoId: number, status: string) => {
     try {
+      // Optimistic update
+      setPedidos(prev =>
+        prev.map(p => p.id === pedidoId ? { ...p, status: normalizePedidoStatus(status) } : p)
+      );
+
       const { error } = await supabase
         .from('Pedidos')
         .update({ status })
@@ -171,12 +176,17 @@ export const usePedidos = (restaurantId: string | null) => {
       return { error: null };
     } catch (err) {
       console.error('Error updating pedido:', err);
+      // Re-fetch to ensure state is in sync if update failed
+      fetchPedidos({ silent: true });
       return { error: err instanceof Error ? err.message : 'Erro ao atualizar pedido' };
     }
-  }, []);
+  }, [fetchPedidos]);
 
   const deletePedido = useCallback(async (pedidoId: number) => {
     try {
+      // Optimistic update
+      setPedidos(prev => prev.filter(p => p.id !== pedidoId));
+
       const { error } = await supabase
         .from('Pedidos')
         .delete()
@@ -186,9 +196,11 @@ export const usePedidos = (restaurantId: string | null) => {
       return { error: null };
     } catch (err) {
       console.error('Error deleting pedido:', err);
+      // Re-fetch to ensure state is in sync if delete failed
+      fetchPedidos({ silent: true });
       return { error: err instanceof Error ? err.message : 'Erro ao excluir pedido' };
     }
-  }, []);
+  }, [fetchPedidos]);
 
   // Calculate daily metrics
   const dailyMetrics = useCallback(() => {
