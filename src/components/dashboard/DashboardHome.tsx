@@ -4,13 +4,21 @@ import {
   ArrowUpRight, ArrowDownRight, Package, Inbox
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
-import { usePedidos } from '@/hooks/usePedidos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 const DashboardHome: React.FC = () => {
-  const { orders, products, tables, customers, stockMovements, restaurantId } = useApp();
-  const { pedidos, dailyMetrics, loading } = usePedidos(restaurantId);
+  const {
+    orders,
+    products,
+    tables,
+    customers,
+    stockMovements,
+    restaurantId,
+    pedidos,
+    dailyMetrics,
+    loadingPedidos: loading
+  } = useApp();
 
   // Calculate metrics from Supabase data
   const metrics = useMemo(() => {

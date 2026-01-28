@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { Check, Trash2, Edit2, X, Loader2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
-import { usePedidos } from '@/hooks/usePedidos';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
 } from '@/components/ui/alert-dialog';
 
 const OrderQueue: React.FC = () => {
-  const { restaurantId, filter } = useApp();
-  const { pedidos, updatePedidoStatus, deletePedido, loading } = usePedidos(restaurantId);
+  const { pedidos, updatePedidoStatus, deletePedido, loadingPedidos: loading } = useApp();
 
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);

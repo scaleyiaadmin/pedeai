@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useRestaurant } from '@/hooks/useRestaurant';
-import { usePedidos } from '@/hooks/usePedidos';
+import { usePedidos, ParsedPedido } from '@/hooks/usePedidos';
 import { useProdutos, ProdutoSupabase } from '@/hooks/useProdutos';
 import { validateLoginInput } from '@/lib/auth-validation';
 import { toast } from 'sonner';
@@ -156,6 +156,11 @@ interface AppContextType {
   filter: 'all' | 'bar' | 'kitchen';
   setFilter: (filter: 'all' | 'bar' | 'kitchen') => void;
   loadingData: boolean;
+  pedidos: ParsedPedido[];
+  updatePedidoStatus: (pedidoId: number, status: string) => Promise<{ error: string | null }>;
+  deletePedido: (pedidoId: number) => Promise<{ error: string | null }>;
+  dailyMetrics: () => { totalSales: number; pendingOrders: number; topProducts: any[]; totalOrders: number };
+  loadingPedidos: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -207,7 +212,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Use Supabase hooks
   const { restaurant, updateRestaurant, refetch: refetchRestaurant } = useRestaurant(restaurantId);
-  const { pedidos, dailyMetrics, refetch: refetchPedidos } = usePedidos(restaurantId);
+  const {
+    pedidos,
+    dailyMetrics,
+    loading: loadingPedidos,
+    updatePedidoStatus,
+    deletePedido,
+    refetch: refetchPedidos
+  } = usePedidos(restaurantId);
   const {
     produtos: produtosDb,
     addProduto,
@@ -763,6 +775,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       filter,
       setFilter,
       loadingData,
+      pedidos,
+      updatePedidoStatus,
+      deletePedido,
+      dailyMetrics,
+      loadingPedidos,
     }}>
       {children}
     </AppContext.Provider>
