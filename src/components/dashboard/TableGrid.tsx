@@ -103,12 +103,12 @@ const TableGrid: React.FC = () => {
 
               {/* Station Icons */}
               <div className="flex items-center gap-1 mt-2">
-                {hasBarOrders(table.id) && (
+                {table.status === 'occupied' && hasBarOrders(table.id) && (
                   <div className="flex items-center justify-center w-6 h-6 rounded-full bg-info/20">
                     <Beer className="w-3 h-3 text-info" />
                   </div>
                 )}
-                {hasKitchenOrders(table.id) && (
+                {table.status === 'occupied' && hasKitchenOrders(table.id) && (
                   <div className="flex items-center justify-center w-6 h-6 rounded-full bg-warning/20">
                     <Utensils className="w-3 h-3 text-warning" />
                   </div>

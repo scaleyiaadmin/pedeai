@@ -276,9 +276,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [restaurant]);
 
-  // Convert pedidos to orders format for compatibility
+  // Convert active pedidos to orders format for compatibility
   useEffect(() => {
-    const convertedOrders: Order[] = pedidos.map(p => ({
+    const activePedidos = pedidos.filter(p => p.status !== 'fechado');
+    const convertedOrders: Order[] = activePedidos.map(p => ({
       id: p.id.toString(),
       tableId: p.mesa,
       items: p.itens.map((item, idx) => ({
