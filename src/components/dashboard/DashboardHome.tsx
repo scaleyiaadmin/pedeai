@@ -243,14 +243,6 @@ const DashboardHome: React.FC = () => {
                 <p className="text-2xl font-bold text-warning">{products.filter(p => p.stock <= (p.minStock || 10)).length}</p>
                 <p className="text-sm text-muted-foreground">Estoque Baixo</p>
               </div>
-              <div className="text-center px-4">
-                <p className="text-2xl font-bold text-info">{orders.filter(o => o.station === 'bar').length}</p>
-                <p className="text-sm text-muted-foreground">Pedidos Bar</p>
-              </div>
-              <div className="text-center px-4">
-                <p className="text-2xl font-bold text-accent">{orders.filter(o => o.station === 'kitchen').length}</p>
-                <p className="text-sm text-muted-foreground">Pedidos Cozinha</p>
-              </div>
             </div>
           </CardContent>
         </Card>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Beer, Utensils, Bell, Receipt } from 'lucide-react';
+import { Bell, Receipt } from 'lucide-react';
 import { useApp, Table } from '@/contexts/AppContext';
 import TableDetailModal from './TableDetailModal';
 import {
@@ -22,13 +22,7 @@ const TableGrid: React.FC = () => {
     return orders.filter(o => o.tableId === tableId);
   };
 
-  const hasBarOrders = (tableId: number) => {
-    return getTableOrders(tableId).some(o => o.station === 'bar');
-  };
 
-  const hasKitchenOrders = (tableId: number) => {
-    return getTableOrders(tableId).some(o => o.station === 'kitchen');
-  };
 
   const filteredTables = tables.filter(table => {
     if (filter === 'all') return true;
@@ -101,19 +95,7 @@ const TableGrid: React.FC = () => {
                 {table.status === 'occupied' ? 'Ocupada' : 'Livre'}
               </p>
 
-              {/* Station Icons */}
-              <div className="flex items-center gap-1 mt-2">
-                {table.status === 'occupied' && hasBarOrders(table.id) && (
-                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-info/20">
-                    <Beer className="w-3 h-3 text-info" />
-                  </div>
-                )}
-                {table.status === 'occupied' && hasKitchenOrders(table.id) && (
-                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-warning/20">
-                    <Utensils className="w-3 h-3 text-warning" />
-                  </div>
-                )}
-              </div>
+
 
               {/* Quick action: Conta paga (only when bill was requested) */}
               {table.alert === 'bill' && (
@@ -145,16 +127,7 @@ const TableGrid: React.FC = () => {
               <span className="text-xs text-muted-foreground font-medium">{item.label}</span>
             </div>
           ))}
-          <div className="flex items-center gap-4 border-l border-border pl-4">
-            <div className="flex items-center gap-1">
-              <Beer className="w-4 h-4 text-info" />
-              <span className="text-xs text-muted-foreground">Bar</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Utensils className="w-4 h-4 text-warning" />
-              <span className="text-xs text-muted-foreground">Cozinha</span>
-            </div>
-          </div>
+
         </div>
       </div>
 
