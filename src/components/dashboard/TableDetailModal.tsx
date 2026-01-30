@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Plus, CreditCard, Search, Minus, Edit2, Trash2, Receipt } from 'lucide-react';
 import { useApp, Table, OrderItem } from '@/contexts/AppContext';
+import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,9 +83,15 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
     setEditQuantity(currentQuantity);
   };
 
-  const cancelEdit = () => {
-    setEditingItem(null);
-    setEditQuantity(1);
+  const handleSaveEdit = (originalItem: OrderItem, newQuantity: number) => {
+    if (newQuantity > originalItem.quantity) {
+      const diff = newQuantity - originalItem.quantity;
+      addItemToTable(currentTable.id, { ...originalItem, quantity: diff });
+      toast.success(`Adicionado mais ${diff}x ${originalItem.productName}`);
+    } else if (newQuantity < originalItem.quantity) {
+      toast.info("Para remover itens, utilize a função de exclusão ou chame o suporte.");
+    }
+    cancelEdit();
   };
 
   // Group consumption items by product
@@ -167,7 +174,7 @@ const TableDetailModal: React.FC<TableDetailModalProps> = ({ table, onClose }) =
                               <Plus className="w-3.5 h-3.5" />
                             </Button>
                             <div className="w-px h-4 bg-border mx-1" />
-                            <Button size="sm" variant="default" className="h-7 px-3 text-xs" onClick={cancelEdit}>
+                            <Button size="sm" variant="default" className="h-7 px-3 text-xs" onClick={() => handleSaveEdit(item, editQuantity)}>
                               Salvar
                             </Button>
                             <Button size="sm" variant="ghost" className="h-7 px-3 text-xs" onClick={cancelEdit}>

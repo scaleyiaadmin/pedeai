@@ -1,10 +1,13 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useRestaurant } from '@/hooks/useRestaurant';
 import { usePedidos, ParsedPedido } from '@/hooks/usePedidos';
 import { useProdutos, ProdutoSupabase } from '@/hooks/useProdutos';
+import { useUsuarios, UsuarioSupabase } from '@/hooks/useUsuarios';
+import { useMensagens } from '@/hooks/useMensagens';
 import { validateLoginInput } from '@/lib/auth-validation';
 import { toast } from 'sonner';
+import { printOrder } from '@/lib/print-utils';
 
 export interface Product {
   id: string;
@@ -162,6 +165,8 @@ interface AppContextType {
   dailyMetrics: () => { totalSales: number; pendingOrders: number; topProducts: any[]; totalOrders: number };
   loadingPedidos: boolean;
   requestBill: (tableId: number) => Promise<void>;
+  mensagens: any;
+  refetchUsuarios: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -229,6 +234,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     deleteProduto,
     refetch: refetchProdutos
   } = useProdutos(restaurantId);
+  const {
+    usuarios,
+    addUsuario,
+    updateUsuario,
+    deleteUsuario,
+    refetch: refetchUsuarios
+  } = useUsuarios(restaurantId);
+
+  const allowedContacts = useMemo(() => customers.map(c => ({ phone: c.phone, name: c.name })), [customers]);
+  const mensagensData = useMensagens(allowedContacts);
+  console.log('[AppContext] authorized contacts phones:', allowedContacts.slice(0, 2).map(c => c.phone));
 
   // Check for existing session on mount
   useEffect(() => {
@@ -250,6 +266,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const interval = setInterval(() => {
       refetchPedidos({ silent: true });
       refetchProdutos({ silent: true });
+      refetchUsuarios({ silent: true });
       refetchRestaurant({ silent: true });
     }, 2000);
 
@@ -323,10 +340,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const shouldBeOccupied = mesasComPedidos.has(t.id) || consumo.length > 0;
         const hasBillRequested = mesasComContaPedida.has(t.id);
 
+        // Check for waiter call in active pedidos (using status 'garcom_chamado' or 'garçom_chamado')
+        const hasWaiterCall = activePedidos.some(p =>
+          p.mesa === t.id &&
+          (p.status === 'garcom_chamado' || p.status === 'garçom_chamado')
+        );
+
         return {
           ...t,
           status: shouldBeOccupied ? 'occupied' : 'free',
-          alert: hasBillRequested ? 'bill' : t.alert === 'bill' ? null : t.alert,
+          alert: hasWaiterCall ? 'waiter' : (hasBillRequested ? 'bill' : t.alert === 'bill' ? null : t.alert),
           consumption: consumo,
         };
       })
@@ -493,6 +516,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setProducts(convertedProducts);
   }, [produtosDb]);
 
+  useEffect(() => {
+    const convertedCustomers: Customer[] = usuarios.map(u => ({
+      id: u.id.toString(),
+      name: u.nome || '',
+      phone: (u.telefone || '').replace(/\D/g, ''),
+      email: '', // Not in Usuários table
+      visits: parseInt(u.quantas_vezes_foi || '0', 10),
+      lastVisit: new Date(u.created_at),
+      totalSpent: 0, // Not in Usuários table
+      tags: [], // Not in Usuários table
+      notes: '', // Not in Usuários table
+    }));
+    setCustomers(convertedCustomers);
+  }, [usuarios]);
+
+
   const addProduct = useCallback(async (product: Omit<Product, 'id'>) => {
     const success = await addProduto({
       nome: product.name,
@@ -524,9 +563,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (updates.description !== undefined) updateData.descricao = updates.description;
     if (updates.isActive !== undefined) updateData.ativo = updates.isActive;
 
-    const success = await updateProduto(parseInt(id), updateData);
+    const success = await updateProduto(parseInt(id, 10), updateData);
     if (success) {
-      toast.success('Produto atualizado!');
+      // toast.success('Produto atualizado!'); // Comentado para não inundar de toasts em pedidos
       return true;
     } else {
       toast.error('Erro ao atualizar produto');
@@ -548,20 +587,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [deleteProduto]);
 
-  const addCustomer = useCallback((customer: Omit<Customer, 'id'>) => {
-    const newCustomer = { ...customer, id: Date.now().toString() };
-    setCustomers(prev => [...prev, newCustomer]);
-  }, []);
+  const addCustomer = useCallback(async (customer: Omit<Customer, 'id'>) => {
+    const success = await addUsuario({
+      nome: customer.name,
+      telefone: customer.phone,
+    });
+    if (success) {
+      toast.success('Cliente adicionado com sucesso!');
+    }
+  }, [addUsuario]);
 
-  const updateCustomer = useCallback((id: string, updates: Partial<Customer>) => {
-    setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-  }, []);
+  const updateCustomer = useCallback(async (id: string, updates: Partial<Customer>) => {
+    const updateData: any = {};
+    if (updates.name !== undefined) updateData.nome = updates.name;
+    if (updates.phone !== undefined) updateData.phone = updates.phone;
 
-  const deleteCustomer = useCallback((id: string) => {
-    setCustomers(prev => prev.filter(c => c.id !== id));
-  }, []);
+    const success = await updateUsuario(parseInt(id, 10), updateData);
+    if (success) {
+      toast.success('Cliente atualizado!');
+    }
+  }, [updateUsuario]);
 
-  const addStockMovement = useCallback(async (movement: Omit<StockMovement, 'id' | 'date'>) => {
+  const deleteCustomer = useCallback(async (id: string) => {
+    const success = await deleteUsuario(parseInt(id, 10));
+    if (success) {
+      toast.success('Cliente removido!');
+    }
+  }, [deleteUsuario]);
+
+  const addStockMovement = useCallback(async (movement: Omit<StockMovement, 'id' | 'date'>, skipDbUpdate = false) => {
     const product = products.find(p => p.id === movement.productId);
     if (!product) {
       toast.error('Produto não encontrado');
@@ -569,18 +623,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     const stockChange = movement.type === 'in' ? movement.quantity : -movement.quantity;
-    const newStock = Math.max(0, product.stock + stockChange);
+    const newStock = Math.max(0, (product.stock || 0) + stockChange);
 
     try {
-      const success = await updateProduct(movement.productId, { stock: newStock });
-      if (success !== undefined) { // updateProduct doesn't return anything but let's assume it works if no error
+      let success = true;
+      if (!skipDbUpdate) {
+        success = await updateProduct(movement.productId, { stock: newStock });
+      }
+
+      if (success) {
         const newMovement: StockMovement = {
           ...movement,
-          id: Date.now().toString(),
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
           date: new Date(),
         };
         setStockMovements(prev => [newMovement, ...prev]);
-        toast.success(`Estoque atualizado: ${movement.type === 'in' ? '+' : '-'}${movement.quantity}`);
+        if (!skipDbUpdate) {
+          toast.success(`Estoque atualizado: ${movement.type === 'in' ? '+' : '-'}${movement.quantity}`);
+        }
       }
     } catch (error) {
       toast.error('Erro ao atualizar estoque no banco de dados');
@@ -657,7 +717,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } catch (err) {
       console.error('Failed to create order:', err);
     }
-  }, [restaurantId]);
+  }, [restaurantId, products, updateProduct, addStockMovement]);
 
   const requestBill = useCallback(async (tableId: number) => {
     if (!restaurantId) return;
@@ -696,10 +756,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [orders]);
 
   const reprintOrder = useCallback((orderId: string) => {
-    setOrders(prev => prev.map(o =>
-      o.id === orderId ? { ...o, printStatus: 'printed' } : o
-    ));
-  }, []);
+    const pedido = pedidos.find(p => p.id === parseInt(orderId));
+    if (pedido) {
+      printOrder(pedido, settings.restaurantName);
+      toast.success('Re-imprimindo pedido...');
+    } else {
+      toast.error('Pedido não encontrado para re-impressão');
+    }
+  }, [pedidos, settings.restaurantName]);
 
   const updateTableAlert = useCallback((tableId: number, alert: 'waiter' | 'bill' | null) => {
     const table = tables.find(t => t.id === tableId);
@@ -763,56 +827,102 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setUndoAction(null);
   }, []);
 
-  return (
-    <AppContext.Provider value={{
-      isAuthenticated,
-      isAdminAuthenticated,
-      restaurantId,
-      login,
-      logout,
-      adminLogin,
-      adminLogout,
-      tables,
-      settings,
-      updateSettings,
-      saveSettingsToSupabase,
-      products,
-      addProduct,
-      updateProduct,
-      deleteProduct,
-      orders,
-      addOrder,
-      deliverOrder,
-      reprintOrder,
-      updateTableAlert,
-      closeTable,
-      addItemToTable,
-      customers,
-      addCustomer,
-      updateCustomer,
-      deleteCustomer,
-      stockMovements,
-      addStockMovement,
-      campaigns,
-      addCampaign,
-      updateCampaign,
-      deleteCampaign,
-      undoAction,
-      performUndo,
-      clearUndo,
-      filter,
-      setFilter,
-      loadingData,
-      pedidos,
-      updatePedidoStatus,
-      deletePedido,
-      dailyMetrics,
-      loadingPedidos,
-      requestBill,
-    }}>
-      {children}
-    </AppContext.Provider>
-  );
+  const contextValue = useMemo(() => ({
+    isAuthenticated,
+    isAdminAuthenticated,
+    restaurantId,
+    login,
+    logout,
+    adminLogin,
+    adminLogout,
+    tables,
+    settings,
+    updateSettings,
+    saveSettingsToSupabase,
+    products,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    orders,
+    addOrder,
+    deliverOrder,
+    reprintOrder,
+    updateTableAlert,
+    closeTable,
+    addItemToTable,
+    customers,
+    addCustomer,
+    updateCustomer,
+    deleteCustomer,
+    stockMovements,
+    addStockMovement,
+    campaigns,
+    addCampaign,
+    updateCampaign,
+    deleteCampaign,
+    undoAction,
+    performUndo,
+    clearUndo,
+    filter,
+    setFilter,
+    loadingData,
+    pedidos,
+    updatePedidoStatus,
+    deletePedido,
+    dailyMetrics,
+    loadingPedidos,
+    requestBill,
+    mensagens: mensagensData,
+  }), [
+    isAuthenticated,
+    isAdminAuthenticated,
+    restaurantId,
+    login,
+    logout,
+    adminLogin,
+    adminLogout,
+    tables,
+    settings,
+    updateSettings,
+    saveSettingsToSupabase,
+    products,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    orders,
+    addOrder,
+    deliverOrder,
+    reprintOrder,
+    updateTableAlert,
+    closeTable,
+    addItemToTable,
+    customers,
+    addCustomer,
+    updateCustomer,
+    deleteCustomer,
+    stockMovements,
+    addStockMovement,
+    campaigns,
+    addCampaign,
+    updateCampaign,
+    deleteCampaign,
+    undoAction,
+    performUndo,
+    clearUndo,
+    filter,
+    setFilter,
+    loadingData,
+    pedidos,
+    updatePedidoStatus,
+    deletePedido,
+    dailyMetrics,
+    loadingPedidos,
+    requestBill,
+    mensagensData,
+    refetchUsuarios,
+  ]);
+
+  return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;
 };
 
 export const useApp = () => {

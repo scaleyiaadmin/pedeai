@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Trash2, Edit2, X, Loader2 } from 'lucide-react';
+import { Check, Trash2, Edit2, X, Loader2, Printer } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 const OrderQueue: React.FC = () => {
-  const { pedidos, updatePedidoStatus, deletePedido, loadingPedidos: loading } = useApp();
+  const { pedidos, updatePedidoStatus, deletePedido, loadingPedidos: loading, reprintOrder } = useApp();
 
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -131,6 +131,15 @@ const OrderQueue: React.FC = () => {
                         Entregue
                       </>
                     )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => reprintOrder(pedido.id.toString())}
+                    className="h-10 w-10 rounded-lg text-info hover:text-info hover:bg-info/10"
+                    title="Re-imprimir pedido"
+                  >
+                    <Printer className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="outline"

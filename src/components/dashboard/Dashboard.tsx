@@ -28,7 +28,12 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {activeView === 'conversations' && <ConversationsView />}
+      {activeView === 'conversations' && (
+        <>
+          {console.log('[Dashboard] Attempting to render ConversationsView')}
+          <ConversationsView />
+        </>
+      )}
 
       <UndoToast />
     </div>

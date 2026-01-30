@@ -88,7 +88,7 @@ const parsePedido = (pedido: Pedido): ParsedPedido => {
   };
 };
 
-export const usePedidos = (restaurantId: string | null) => {
+export const usePedidos = (restaurantId: string | null, onInsert?: (pedido: ParsedPedido) => void) => {
   const [pedidos, setPedidos] = useState<ParsedPedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +142,9 @@ export const usePedidos = (restaurantId: string | null) => {
           if (payload.eventType === 'INSERT') {
             const newPedido = parsePedido(payload.new as Pedido);
             setPedidos(prev => [newPedido, ...prev]);
+            if (onInsert) {
+              onInsert(newPedido);
+            }
           } else if (payload.eventType === 'UPDATE') {
             const updatedPedido = parsePedido(payload.new as Pedido);
             setPedidos(prev =>
