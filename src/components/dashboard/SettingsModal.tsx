@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
+import { printToRawBT } from '@/services/printerService';
 
 const PRODUCT_CATEGORIES = [
   'Bebida',
@@ -203,6 +204,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       });
       setStockAdjustment({ type: 'in', quantity: 0, reason: '' });
       setShowStockAdjust(null);
+    }
+  };
+
+  const handleTestPrint = async () => {
+    const success = await printToRawBT(
+      `<html>
+        <body style="font-family: monospace; text-align: center;">
+          <h1 style="font-size: 24px;">TESTE PEDEAI</h1>
+          <p style="font-size: 16px;">Se você está lendo isso, o RawBT está configurado corretamente!</p>
+          <hr style="border-top: 1px dashed black;">
+          <p>Configuração OK</p>
+          <br><br>
+        </body>
+      </html>`
+    );
+
+    if (success) {
+      toast.success('Comando enviado para o RawBT!');
+    } else {
+      toast.error('Falha ao enviar. Verifique se o RawBT está rodando no tablet.');
     }
   };
 
@@ -507,18 +528,34 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Impressoras */}
               <div className="bg-secondary/30 rounded-xl p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-foreground flex items-center gap-2">
                     <Printer className="w-4 h-4" />
                     Impressoras
                   </h3>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Plus className="w-4 h-4" />
-                    Adicionar
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleTestPrint} className="gap-2">
+                      <Printer className="w-4 h-4" />
+                      Testar Impressão
+                    </Button>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Plus className="w-4 h-4" />
+                      Adicionar
+                    </Button>
+                  </div>
                 </div>
+
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-4">
+                  <h4 className="text-sm font-semibold text-blue-500 mb-1">Configuração RawBT (Tablet)</h4>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Para imprimir silenciosamente, o app <strong>RawBT</strong> deve estar instalado com a opção "Print Server" ativa.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Certifique-se também que o Chrome tem a flag <code>allow-insecure-localhost</code> ativada.
+                  </p>
+                </div>
+
                 <div className="space-y-2">
                   {settings.printers.map((printer) => (
                     <div key={printer.id} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
