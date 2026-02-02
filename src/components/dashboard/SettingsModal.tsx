@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { printToRawBT, printViaDeepLink } from '@/services/printerService';
+import { printToRawBT, printViaDeepLink, connectBluetoothPrinter, printViaWebBluetooth } from '@/services/printerService';
 
 const PRODUCT_CATEGORIES = [
   'Bebida',
@@ -240,6 +240,35 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       </html>`
     );
     toast.info('Abrindo app de impressão...');
+  };
+
+  const handleConnectBluetooth = async () => {
+    const success = await connectBluetoothPrinter();
+    if (success) {
+      toast.success('Impressora NATIVA conectada com sucesso!');
+    } else {
+      toast.error('Não foi possível conectar. Tente novamente.');
+    }
+  };
+
+  const handleTestWebBluetooth = async () => {
+    const mockOrder = {
+      id: "TESTE-001",
+      mesa: "00",
+      created_at: new Date(),
+      total: 50.00,
+      itens: [
+        { nome: "Teste de Impressão", quantidade: 1, preco: 50.00 }
+      ],
+      descricao: "Conexão Web Bluetooth bem sucedida!"
+    };
+
+    const success = await printViaWebBluetooth(mockOrder);
+    if (success) {
+      toast.success('Cupom enviado para impressora!');
+    } else {
+      toast.error('Falha ao enviar. A impressora está conectada?');
+    }
   };
 
   const handleUpdateProductClick = async (productId: string) => {
@@ -576,6 +605,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     <Printer className="w-4 h-4" />
                     Testar Método Simples (Sem Configuração)
                   </Button>
+                </div>
+
+                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 mb-4">
+                  <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-1">Impressão Nativa (Recomendado) (BETA)</h4>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Conecte a impressora diretamente pelo Chrome sem apps extras.
+                  </p>
+
+                  <div className="flex gap-2 flex-wrap">
+                    <Button variant="default" size="sm" onClick={handleConnectBluetooth} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
+                      <Wifi className="w-4 h-4" />
+                      1. Conectar Impressora
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleTestWebBluetooth} className="gap-2 border-green-600 text-green-600 hover:bg-green-50">
+                      <Printer className="w-4 h-4" />
+                      2. Testar Nativo
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
