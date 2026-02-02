@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { printToRawBT } from '@/services/printerService';
+import { printToRawBT, printViaDeepLink } from '@/services/printerService';
 
 const PRODUCT_CATEGORIES = [
   'Bebida',
@@ -225,6 +225,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     } else {
       toast.error('Falha ao enviar. Verifique se o RawBT está rodando no tablet.');
     }
+  };
+
+  const handleTestDeepLink = () => {
+    printViaDeepLink(
+      `<html>
+        <body style="font-family: monospace; text-align: center;">
+          <h1 style="font-size: 24px;">TESTE SIMPLES</h1>
+          <p>MÉTODO "LINK DIRETO"</p>
+          <hr>
+          <p>Se imprimiu, use este método!</p>
+          <br><br>
+        </body>
+      </html>`
+    );
+    toast.info('Abrindo app de impressão...');
   };
 
   const handleUpdateProductClick = async (productId: string) => {
@@ -554,6 +569,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   <p className="text-xs text-muted-foreground">
                     Certifique-se também que o Chrome tem a flag <code>allow-insecure-localhost</code> ativada.
                   </p>
+                </div>
+
+                <div className="flex justify-end mb-4">
+                  <Button variant="secondary" size="sm" onClick={handleTestDeepLink} className="gap-2 w-full sm:w-auto">
+                    <Printer className="w-4 h-4" />
+                    Testar Método Simples (Sem Configuração)
+                  </Button>
                 </div>
 
                 <div className="space-y-2">

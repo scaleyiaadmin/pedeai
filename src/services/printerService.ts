@@ -1,16 +1,16 @@
 export interface PrintItem {
-    nome: string;
-    quantidade: number;
-    preco: number;
+  nome: string;
+  quantidade: number;
+  preco: number;
 }
 
 export interface PrintOrderData {
-    id: number | string;
-    mesa: number | string;
-    created_at: string | Date;
-    itens: PrintItem[];
-    total: number;
-    descricao?: string; // Observações
+  id: number | string;
+  mesa: number | string;
+  created_at: string | Date;
+  itens: PrintItem[];
+  total: number;
+  descricao?: string; // Observações
 }
 
 // URL do RawBT (geralmente fixo na porta 40213 para localhost)
@@ -22,11 +22,11 @@ const RAWBT_URL = 'http://localhost:40213/print';
  * pois o próprio RawBT processa o HTML.
  */
 export const formatReceipt = (pedido: PrintOrderData, restaurantName: string = 'PedeAí'): string => {
-    const dateStr = new Date(pedido.created_at).toLocaleString('pt-BR');
+  const dateStr = new Date(pedido.created_at).toLocaleString('pt-BR');
 
-    // O RawBT entende HTML simples.
-    // Importante: CSS inline é o mais seguro.
-    return `
+  // O RawBT entende HTML simples.
+  // Importante: CSS inline é o mais seguro.
+  return `
     <html>
     <head>
       <meta charset="utf-8">
@@ -73,35 +73,54 @@ export const formatReceipt = (pedido: PrintOrderData, restaurantName: string = '
 };
 
 /**
+ * MÉTODO 2 (MAIS SIMPLES): Link Direto (Deep Link/Intent)
+ * Não precisa de servidor nem configurar Chrome.
+ * O navegador vai perguntar "Abrir RawBT?" e o usuário permite.
+ */
+export const printViaDeepLink = (content: string) => {
+  // Converte o HTML para Base64 corretamente (suportando acentos/utf-8)
+  const base64 = btoa(unescape(encodeURIComponent(content)));
+
+  // Monta a URL no formato que o Android entende como "Abrir App"
+  // S.payload = dados
+  // S.type = tipo de dado (html)
+  const intentUrl = `intent:#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.type=text/html;S.payload=${base64};end;`;
+
+  // Força abrir o link
+  window.location.href = intentUrl;
+  return true;
+};
+
+/**
  * Envia o comando de impressão para o RawBT via POST.
  */
 export const printToRawBT = async (content: string): Promise<boolean> => {
-    try {
-        // Controller para timeout (se o RawBT não estiver rodando, falha rápido em 2s em vez de esperar muito)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
+  try {
+    // Controller para timeout (se o RawBT não estiver rodando, falha rápido em 2s em vez de esperar muito)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-        const response = await fetch(RAWBT_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'text/plain', // RawBT aceita text/plain para HTML direto também, ou application/x-www-form-urlencoded
-            },
-            // RawBT espera o conteúdo diretamente no corpo
-            body: content,
-            signal: controller.signal
-        });
+    const response = await fetch(RAWBT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain', // RawBT aceita text/plain para HTML direto também, ou application/x-www-form-urlencoded
+      },
+      // RawBT espera o conteúdo diretamente no corpo
+      body: content,
+      signal: controller.signal
+    });
 
-        clearTimeout(timeoutId);
+    clearTimeout(timeoutId);
 
-        if (response.ok) {
-            console.log('Impressão enviada com sucesso para RawBT');
-            return true;
-        } else {
-            console.error('Erro na resposta do RawBT:', response.status, response.statusText);
-            return false;
-        }
-    } catch (error) {
-        console.error('Falha ao conectar com RawBT (verifique se o app está rodando e Print Server ativo):', error);
-        return false;
+    if (response.ok) {
+      console.log('Impressão enviada com sucesso para RawBT');
+      return true;
+    } else {
+      console.error('Erro na resposta do RawBT:', response.status, response.statusText);
+      return false;
     }
+  } catch (error) {
+    console.error('Falha ao conectar com RawBT (verifique se o app está rodando e Print Server ativo):', error);
+    return false;
+  }
 };
