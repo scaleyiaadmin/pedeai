@@ -337,154 +337,225 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             {/* Tab A: Operação */}
             <TabsContent value="operation" className="mt-0 space-y-6 data-[state=active]:block">
               {/* Informações do Restaurante */}
-              <div className="bg-secondary/30 rounded-xl p-6 space-y-4">
-                <h3 className="font-semibold text-foreground flex items-center gap-2">
-                  <Settings2 className="w-4 h-4" />
-                  Informações do Restaurante
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Nome do Estabelecimento</Label>
-                    <Input
-                      value={localSettings.restaurantName}
-                      onChange={(e) => handleLocalChange('restaurantName', e.target.value)}
-                      onBlur={(e) => handleBlurSave('restaurantName', e.target.value)}
-                      className="rounded-lg"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>WhatsApp</Label>
-                    <Input
-                      value={localSettings.whatsappNumber}
-                      onChange={(e) => handleLocalChange('whatsappNumber', e.target.value)}
-                      onBlur={(e) => handleBlurSave('whatsappNumber', e.target.value)}
-                      placeholder="(00) 00000-0000"
-                      className="rounded-lg"
-                    />
-                  </div>
+              <div className="bg-secondary/20 rounded-2xl border border-primary/10 overflow-hidden shadow-sm">
+                <div className="bg-gradient-to-r from-primary/10 to-transparent px-6 py-4 border-b border-primary/5">
+                  <h3 className="font-bold text-foreground flex items-center gap-2">
+                    <Store className="w-5 h-5 text-primary" />
+                    Informações do Restaurante
+                  </h3>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Horário de Abertura</Label>
-                    <Input
-                      type="time"
-                      value={localSettings.openingTime}
-                      onChange={(e) => handleLocalChange('openingTime', e.target.value)}
-                      onBlur={(e) => handleBlurSave('openingTime', e.target.value)}
-                      className="rounded-lg"
-                    />
+
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">Nome do Estabelecimento</Label>
+                      <div className="relative group">
+                        <Input
+                          value={localSettings.restaurantName}
+                          onChange={(e) => handleLocalChange('restaurantName', e.target.value)}
+                          onBlur={(e) => handleBlurSave('restaurantName', e.target.value)}
+                          className="h-12 rounded-xl bg-background border-2 border-primary/5 group-focus-within:border-primary/30 transition-all pl-10"
+                        />
+                        <Settings2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">WhatsApp de Contato</Label>
+                      <div className="relative group">
+                        <Input
+                          value={localSettings.whatsappNumber}
+                          onChange={(e) => handleLocalChange('whatsappNumber', e.target.value)}
+                          onBlur={(e) => handleBlurSave('whatsappNumber', e.target.value)}
+                          placeholder="(00) 00000-0000"
+                          className="h-12 rounded-xl bg-background border-2 border-primary/5 group-focus-within:border-primary/30 transition-all pl-10"
+                        />
+                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Horário de Fechamento</Label>
-                    <Input
-                      type="time"
-                      value={localSettings.closingTime}
-                      onChange={(e) => handleLocalChange('closingTime', e.target.value)}
-                      onBlur={(e) => handleBlurSave('closingTime', e.target.value)}
-                      className="rounded-lg"
-                    />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">Horário de Abertura</Label>
+                      <div className="relative group">
+                        <Input
+                          type="time"
+                          value={localSettings.openingTime}
+                          onChange={(e) => handleLocalChange('openingTime', e.target.value)}
+                          onBlur={(e) => handleBlurSave('openingTime', e.target.value)}
+                          className="h-12 rounded-xl bg-background border-2 border-primary/5 group-focus-within:border-primary/30 transition-all pl-10 pr-10"
+                        />
+                        <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">Horário de Fechamento</Label>
+                      <div className="relative group">
+                        <Input
+                          type="time"
+                          value={localSettings.closingTime}
+                          onChange={(e) => handleLocalChange('closingTime', e.target.value)}
+                          onBlur={(e) => handleBlurSave('closingTime', e.target.value)}
+                          className="h-12 rounded-xl bg-background border-2 border-primary/5 group-focus-within:border-primary/30 transition-all pl-10 pr-10"
+                        />
+                        <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Mesas */}
-              <div className="bg-secondary/30 rounded-xl p-6 space-y-4">
-                <h3 className="font-semibold text-foreground">Configuração de Mesas</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Número de Mesas</Label>
-                    <Input
-                      type="number"
-                      max={parseInt(restaurant?.max_mesas || '100')}
-                      value={localSettings.totalTables}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        const value = val === '' ? 0 : parseInt(val);
-                        handleLocalChange('totalTables', value);
-                      }}
-                      onBlur={(e) => {
-                        const val = parseInt(e.target.value) || 0;
-                        const max = parseInt(restaurant?.max_mesas || '100');
-                        const finalVal = Math.min(Math.max(0, val), max);
-                        handleLocalChange('totalTables', finalVal);
-                        updateAndSaveSetting({ quantidade_mesas: finalVal.toString() });
-                      }}
-                      className="w-32 h-10 rounded-lg text-center font-bold text-lg"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Máximo contratado: {restaurant?.max_mesas || '---'} mesas
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Horário Fechamento Cozinha</Label>
-                    <Input
-                      type="time"
-                      value={localSettings.kitchenClosingTime || localSettings.closingTime}
-                      onChange={(e) => handleLocalChange('kitchenClosingTime', e.target.value)}
-                      onBlur={(e) => handleBlurSave('kitchenClosingTime', e.target.value)}
-                      className="w-32 h-10 rounded-lg"
-                    />
-                    <p className="text-sm text-warning flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
-                      30min antes, clientes serão avisados
-                    </p>
-                  </div>
+              <div className="bg-secondary/20 rounded-2xl border border-primary/10 overflow-hidden shadow-sm">
+                <div className="bg-gradient-to-r from-primary/10 to-transparent px-6 py-4 border-b border-primary/5">
+                  <h3 className="font-bold text-foreground flex items-center gap-2">
+                    <Warehouse className="w-5 h-5 text-primary" />
+                    Configuração de Mesas
+                  </h3>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-card rounded-lg border border-border">
-                  <div>
-                    <Label className="text-foreground font-medium">Fechar Mesa Automaticamente</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Após pagamento confirmado
-                    </p>
+
+                <div className="p-6 space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div className="space-y-4">
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Número de Mesas Ativas</Label>
+                        <p className="text-xs text-muted-foreground">Defina quantas mesas aparecerão no salão</p>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            max={parseInt(restaurant?.max_mesas || '100')}
+                            value={localSettings.totalTables}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const value = val === '' ? 0 : parseInt(val);
+                              handleLocalChange('totalTables', value);
+                            }}
+                            onBlur={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              const max = parseInt(restaurant?.max_mesas || '100');
+                              const finalVal = Math.min(Math.max(0, val), max);
+                              handleLocalChange('totalTables', finalVal);
+                              updateAndSaveSetting({ quantidade_mesas: finalVal.toString() });
+                            }}
+                            className="w-40 h-14 rounded-2xl text-center font-black text-2xl bg-background border-2 border-primary/20 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-inner"
+                          />
+                        </div>
+
+                        <div className="flex flex-col justify-center">
+                          <p className="text-sm font-medium text-foreground">
+                            Até <span className="text-primary font-bold">{restaurant?.max_mesas || '50'}</span> contratadas
+                          </p>
+                          <div className="w-32 h-2 bg-secondary rounded-full mt-2 overflow-hidden border border-border">
+                            <div
+                              className="h-full bg-primary transition-all duration-500 ease-out"
+                              style={{
+                                width: `${Math.min(100, (localSettings.totalTables / parseInt(restaurant?.max_mesas || '50')) * 100)}%`
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Fechamento da Cozinha</Label>
+                        <p className="text-xs text-muted-foreground">Horário limite para pedidos na cozinha</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="relative group">
+                          <Input
+                            type="time"
+                            value={localSettings.kitchenClosingTime || localSettings.closingTime}
+                            onChange={(e) => handleLocalChange('kitchenClosingTime', e.target.value)}
+                            onBlur={(e) => handleBlurSave('kitchenClosingTime', e.target.value)}
+                            className="w-40 h-14 rounded-2xl text-center font-bold text-xl bg-background border-2 border-primary/10 focus:border-primary transition-all pr-4 pl-4"
+                          />
+                          <Clock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/50 group-hover:text-primary transition-colors pointer-events-none" />
+                        </div>
+                        <div className="flex-1">
+                          <Badge variant="outline" className="bg-warning/5 text-warning border-warning/20 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4" />
+                            <span className="text-[10px] leading-tight font-medium">Avisar clientes 30min antes</span>
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <Switch
-                    checked={settings.autoCloseTable}
-                    onCheckedChange={(checked) => updateAndSaveSetting({ fechar_mesa_auto: checked })}
-                  />
+
+                  <div className="pt-4 border-t border-border/50">
+                    <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10 hover:bg-primary/10 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                          <Check className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <Label className="text-foreground font-bold text-lg">Auto-Fechar Mesas</Label>
+                          <p className="text-sm text-muted-foreground italic">
+                            Libera a mesa instantaneamente após confirmação de pagamento
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={settings.autoCloseTable}
+                        onCheckedChange={(checked) => updateAndSaveSetting({ fechar_mesa_auto: checked })}
+                        className="scale-125 data-[state=checked]:bg-primary"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Alertas e Sons */}
-              <div className="bg-secondary/30 rounded-xl p-6 space-y-4">
-                <h3 className="font-semibold text-foreground">Alertas e Notificações</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center justify-between p-4 bg-card rounded-lg border border-border">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center">
-                        <AlertTriangle className="w-5 h-5 text-warning" />
+              <div className="bg-secondary/20 rounded-2xl border border-primary/10 overflow-hidden shadow-sm">
+                <div className="bg-gradient-to-r from-primary/10 to-transparent px-6 py-4 border-b border-primary/5">
+                  <h3 className="font-bold text-foreground flex items-center gap-2">
+                    <Bell className="w-5 h-5 text-primary" />
+                    Alertas e Notificações
+                  </h3>
+                </div>
+
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex items-center justify-between p-4 bg-background border border-primary/5 rounded-2xl hover:border-primary/20 transition-all group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center group-hover:bg-orange-500/20 transition-colors">
+                          <AlertCircle className="w-6 h-6 text-orange-500" />
+                        </div>
+                        <div>
+                          <Label className="text-foreground font-bold text-base">Alertas Piscantes</Label>
+                          <p className="text-xs text-muted-foreground">Animar mesas ao chamar garçom</p>
+                        </div>
                       </div>
-                      <div>
-                        <Label className="text-foreground font-medium">Alertas Piscantes</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Animação para garçom e conta
-                        </p>
-                      </div>
+                      <Switch
+                        checked={settings.flashingEnabled}
+                        onCheckedChange={(checked) => updateAndSaveSetting({ alertas_piscantes: checked })}
+                        className="data-[state=checked]:bg-orange-500"
+                      />
                     </div>
-                    <Switch
-                      checked={settings.flashingEnabled}
-                      onCheckedChange={(checked) => updateAndSaveSetting({ alertas_piscantes: checked })}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-card rounded-lg border border-border">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                        {settings.soundEnabled ? (
-                          <Volume2 className="w-5 h-5 text-primary" />
-                        ) : (
-                          <VolumeX className="w-5 h-5 text-muted-foreground" />
-                        )}
+
+                    <div className="flex items-center justify-between p-4 bg-background border border-primary/5 rounded-2xl hover:border-primary/20 transition-all group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                          {settings.soundEnabled ? (
+                            <Volume2 className="w-6 h-6 text-primary" />
+                          ) : (
+                            <VolumeX className="w-6 h-6 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div>
+                          <Label className="text-foreground font-bold text-base">Sons Ativos</Label>
+                          <p className="text-xs text-muted-foreground">Notificações sonoras de pedidos</p>
+                        </div>
                       </div>
-                      <div>
-                        <Label className="text-foreground font-medium">Sons de Notificação</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Alertas sonoros para novos pedidos
-                        </p>
-                      </div>
+                      <Switch
+                        checked={settings.soundEnabled}
+                        onCheckedChange={(checked) => updateAndSaveSetting({ sons_habilitados: checked })}
+                      />
                     </div>
-                    <Switch
-                      checked={settings.soundEnabled}
-                      onCheckedChange={(checked) => updateAndSaveSetting({ sons_habilitados: checked })}
-                    />
                   </div>
                 </div>
               </div>
@@ -888,7 +959,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       <Input
                         type="number"
                         value={settings.lowStockAlert}
-                        onChange={(e) => handleUpdateOperationSetting({ lowStockAlert: parseInt(e.target.value) || 15 })}
+                        onChange={(e) => updateAndSaveSetting({ alerta_estoque_baixo: parseInt(e.target.value) || 15 })}
                         className="rounded-lg"
                       />
                     </div>
@@ -897,7 +968,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       <Input
                         type="number"
                         value={settings.criticalStockAlert}
-                        onChange={(e) => handleUpdateOperationSetting({ criticalStockAlert: parseInt(e.target.value) || 5 })}
+                        onChange={(e) => updateAndSaveSetting({ alerta_estoque_critico: parseInt(e.target.value) || 5 })}
                         className="rounded-lg"
                       />
                     </div>
