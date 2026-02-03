@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useRestaurant } from '@/hooks/useRestaurant';
+import { useRestaurant, Restaurant } from '@/hooks/useRestaurant';
 import { usePedidos, ParsedPedido } from '@/hooks/usePedidos';
 import { useProdutos, ProdutoSupabase } from '@/hooks/useProdutos';
 import { useUsuarios, UsuarioSupabase } from '@/hooks/useUsuarios';
@@ -138,6 +138,7 @@ interface AppContextType {
   addProduct: (product: Omit<Product, 'id'>) => Promise<boolean>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<boolean>;
   deleteProduct: (id: string) => Promise<void>;
+  updateAndSaveSetting: (updates: Partial<Restaurant>) => Promise<boolean>;
   orders: Order[];
   addOrder: (tableId: number, items: OrderItem[], station: 'bar' | 'kitchen') => Promise<void>;
   deliverOrder: (orderId: string) => void;
@@ -215,6 +216,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [orders, setOrders] = useState<Order[]>([]);
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [filter, setFilter] = useState<'all' | 'bar' | 'kitchen'>('all');
+  const isSavingRef = React.useRef(false); // Proteção contra polling
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Use Supabase hooks
   const { restaurant, updateRestaurant, refetch: refetchRestaurant } = useRestaurant(restaurantId);
@@ -267,7 +270,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       refetchPedidos({ silent: true });
       refetchProdutos({ silent: true });
       refetchUsuarios({ silent: true });
-      refetchRestaurant({ silent: true });
+
+      // Só busca restaurante se não estiver salvando no momento
+      if (!isSavingRef.current) {
+        refetchRestaurant({ silent: true });
+      }
     }, 2000);
 
     return () => clearInterval(interval);
@@ -520,58 +527,61 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
 
   const saveSettingsToSupabase = useCallback(async () => {
+    // Mantido por compatibilidade, mas moveremos para updateAndSaveSetting
+    return true;
+  }, [restaurantId, settings]);
+
+  const updateAndSaveSetting = useCallback(async (updates: Partial<Restaurant>) => {
     if (!restaurantId) return false;
 
+    // 1. Bloqueia o polling
+    isSavingRef.current = true;
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+
     try {
+      // 2. Atualiza localmente IMEDIATAMENTE (Otimista)
+      setSettings(prev => ({
+        ...prev,
+        restaurantName: updates.nome !== undefined ? (updates.nome || '') : prev.restaurantName,
+        totalTables: updates.quantidade_mesas !== undefined ? parseInt(updates.quantidade_mesas || '0') : prev.totalTables,
+        kitchenClosingTime: updates.horario_fecha_cozinha !== undefined ? (updates.horario_fecha_cozinha || undefined) : prev.kitchenClosingTime,
+        whatsappNumber: updates.telefone !== undefined ? (updates.telefone || '') : prev.whatsappNumber,
+        openingTime: updates.horario_abertura !== undefined ? (updates.horario_abertura || '11:00') : prev.openingTime,
+        closingTime: updates.horario_fechamento !== undefined ? (updates.horario_fechamento || '23:00') : prev.closingTime,
+        autoCloseTable: updates.fechar_mesa_auto !== undefined ? !!updates.fechar_mesa_auto : prev.autoCloseTable,
+        flashingEnabled: updates.alertas_piscantes !== undefined ? !!updates.alertas_piscantes : prev.flashingEnabled,
+        soundEnabled: updates.sons_habilitados !== undefined ? !!updates.sons_habilitados : prev.soundEnabled,
+        lowStockAlert: updates.alerta_estoque_baixo !== undefined ? (updates.alerta_estoque_baixo ?? 15) : prev.lowStockAlert,
+        criticalStockAlert: updates.alerta_estoque_critico !== undefined ? (updates.alerta_estoque_critico ?? 5) : prev.criticalStockAlert,
+        autoPrintEnabled: updates.impressao_auto !== undefined ? !!updates.impressao_auto : prev.autoPrintEnabled,
+      }));
+
+      // 3. Atualiza o banco
       const { error } = await supabase
         .from('Restaurantes')
-        .update({
-          nome: settings.restaurantName,
-          quantidade_mesas: settings.totalTables.toString(),
-          horario_fecha_cozinha: settings.kitchenClosingTime || null,
-          telefone: settings.whatsappNumber || null,
-          horario_abertura: settings.openingTime,
-          horario_fechamento: settings.closingTime,
-          fechar_mesa_auto: settings.autoCloseTable,
-          alertas_piscantes: settings.flashingEnabled,
-          sons_habilitados: settings.soundEnabled,
-          alerta_estoque_baixo: settings.lowStockAlert,
-          alerta_estoque_critico: settings.criticalStockAlert,
-          impressao_auto: settings.autoPrintEnabled,
-        })
+        .update(updates)
         .eq('id', restaurantId);
 
       if (error) {
-        console.error('Error saving settings:', error);
-        toast.error(`Erro ao salvar configurações: ${error.message}`);
+        console.error('Auto-save error:', error);
+        toast.error(`Erro ao salvar: ${error.message}`);
         return false;
       }
 
-      // IMPORTANTE: Atualiza o cache local do restaurante imediatamente para evitar "flicker"
-      // Se não fizermos isso, o poll vai trazer o dado antigo do banco antes da propagação
-      await updateRestaurant({
-        nome: settings.restaurantName,
-        quantidade_mesas: settings.totalTables.toString(),
-        horario_fecha_cozinha: settings.kitchenClosingTime || null,
-        telefone: settings.whatsappNumber || null,
-        horario_abertura: settings.openingTime,
-        horario_fechamento: settings.closingTime,
-        fechar_mesa_auto: settings.autoCloseTable,
-        alertas_piscantes: settings.flashingEnabled,
-        sons_habilitados: settings.soundEnabled,
-        alerta_estoque_baixo: settings.lowStockAlert,
-        alerta_estoque_critico: settings.criticalStockAlert,
-        impressao_auto: settings.autoPrintEnabled,
-      });
+      // 4. Atualiza o cache do hook useRestaurant
+      await updateRestaurant(updates);
 
-      toast.success('Configurações salvas com sucesso!');
       return true;
     } catch (err) {
-      console.error('Failed to save settings:', err);
-      toast.error('Ocorreu um erro ao salvar as configurações.');
+      console.error('Failed auto-save:', err);
       return false;
+    } finally {
+      // 5. Libera o polling após um breve delay para garantir propagação
+      saveTimeoutRef.current = setTimeout(() => {
+        isSavingRef.current = false;
+      }, 3000);
     }
-  }, [restaurantId, settings]);
+  }, [restaurantId, updateRestaurant]);
 
 
   // Sync products from Supabase
@@ -953,6 +963,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     loadingPedidos,
     requestBill,
     mensagens: mensagensData,
+    updateAndSaveSetting,
     refetchUsuarios,
   }), [
     isAuthenticated,
@@ -1001,6 +1012,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     loadingPedidos,
     requestBill,
     mensagensData,
+    updateAndSaveSetting,
     refetchUsuarios,
   ]);
 

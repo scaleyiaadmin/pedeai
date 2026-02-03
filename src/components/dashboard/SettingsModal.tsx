@@ -41,12 +41,12 @@ interface SettingsModalProps {
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const {
-    settings, updateSettings, saveSettingsToSupabase,
+    settings, updateSettings, // Mantidos
+    updateAndSaveSetting, restaurant, // Adicionado
     products, addProduct, updateProduct, deleteProduct,
     customers, addCustomer, updateCustomer, deleteCustomer,
     stockMovements, addStockMovement,
-    campaigns, addCampaign, updateCampaign, deleteCampaign,
-    restaurant // Adicionado para acessar o max_mesas
+    campaigns, addCampaign, updateCampaign, deleteCampaign
   } = useApp();
 
   // Initialize local state with settings
@@ -270,77 +270,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
   const allTags = [...new Set(customers.flatMap(c => c.tags))];
 
-  const handleSaveSettings = async () => {
-    setIsSaving(true);
-    try {
-      const success = await saveSettingsToSupabase();
-      if (success) {
-        setHasChanges(false);
-      }
-    } catch (error) {
-      toast.error('Erro ao salvar configurações');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  // handleSaveSettings removido (Auto-save ativo)
 
-  const handleUpdateOperationSetting = (updates: Partial<typeof settings>) => {
-    updateSettings(updates);
-    setHasChanges(true); // Keep this for toggle switches which are instant
-  };
+  // handleUpdateOperationSetting removido (Auto-save ativo)
 
   const handleLocalChange = (field: keyof typeof localSettings, value: any) => {
     setLocalSettings(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleBlurSave = async (field: keyof typeof localSettings) => {
-    const value = localSettings[field];
-    // console.log(`Auto-saving ${field}:`, value);
+  const handleBlurSave = async (field: string, value: any) => {
+    // Mapeamento de campos localSettings para colunas do banco
+    const map: Record<string, string> = {
+      restaurantName: 'nome',
+      whatsappNumber: 'telefone',
+      openingTime: 'horario_abertura',
+      closingTime: 'horario_fechamento',
+      kitchenClosingTime: 'horario_fecha_cozinha',
+      totalTables: 'quantidade_mesas'
+    };
 
-    // Update global context first
-    updateSettings({ [field]: value });
-
-    // Save to Supabase immediately (auto-save)
-    try {
-      // Create a temporary object with the update to save
-      const updates = { [field]: value };
-
-      // We need to call saveSettingsToSupabase but it usually saves the *current* context state.
-      // Since we just called updateSettings, the context might not be updated yet in the closure.
-      // However, saveSettingsToSupabase reads from `settings` dependency.
-      // A better way for auto-save here is to manually call the supabase update or wait for context.
-      // Given the architecture, let's trigger the save after a small delay or use a direct update function if available.
-      // For now, we will rely on saving the specific field directly or just triggering the global save.
-
-      // Let's force an update to the settings context and then trigger save
-      // Limitation: saveSettingsToSupabase uses the state from the hook, which might be stale here.
-      // But since we want to persist "assim que atualizado", let's use the valid value we have.
-
-      setIsSaving(true);
-      // We call the global save. Prerequisite: updateSettings must have propagated. 
-      // Actually, since updateSettings is sync (React state update is async but we are in event handler), 
-      // we might need to pass the new value directly to save if the function supported it.
-      // As a workaround for this specific requirement without refactoring the whole context:
-      // We will call the updateSettings, wait a bit or just optimistically rely on the user not closing immediately.
-      // But simpler: just call saveSettingsToSupabase() - it might save the OLD value if state hasn't updated.
-      // FIX: Let's assume the user accepts "save on blur" implies triggering the save which reads latest state.
-      // To ensure we save THIS value, we can pass it to updateSettings then trigger save.
-
-      // Better approach for "auto-save": 
-      // 1. Update context
-      // 2. Trigger save (which reads context). 
-      // To guarantee consistency, we'll perform the save inside a useEffect or just assume fast enough update.
-      // OR, we can directly invoke the supabase client here if we had access, but we don't inside the modal easily without duplicating logic.
-
-      // Let's use a timeout to allow state to settle
-      setTimeout(() => {
-        saveSettingsToSupabase();
-        setIsSaving(false);
-      }, 500);
-
-    } catch (err) {
-      console.error(err);
-      setIsSaving(false);
+    const dbField = map[field];
+    if (dbField) {
+      updateAndSaveSetting({ [dbField]: value.toString() });
     }
   };
 
@@ -354,20 +305,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               <Settings2 className="w-5 h-5 text-primary" />
               Configurações
             </DialogTitle>
-            {activeTab === 'operation' && hasChanges && (
-              <Button
-                onClick={handleSaveSettings}
-                disabled={isSaving}
-                className="gap-2 animate-in fade-in slide-in-from-right-2"
-              >
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                Salvar Alterações
-              </Button>
-            )}
+            {/* Removido o botão Salvar Alterações para usar Auto-Save */}
           </div>
         </DialogHeader>
 
@@ -410,7 +348,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     <Input
                       value={localSettings.restaurantName}
                       onChange={(e) => handleLocalChange('restaurantName', e.target.value)}
-                      onBlur={() => handleBlurSave('restaurantName')}
+                      onBlur={(e) => handleBlurSave('restaurantName', e.target.value)}
                       className="rounded-lg"
                     />
                   </div>
@@ -419,7 +357,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     <Input
                       value={localSettings.whatsappNumber}
                       onChange={(e) => handleLocalChange('whatsappNumber', e.target.value)}
-                      onBlur={() => handleBlurSave('whatsappNumber')}
+                      onBlur={(e) => handleBlurSave('whatsappNumber', e.target.value)}
                       placeholder="(00) 00000-0000"
                       className="rounded-lg"
                     />
@@ -432,7 +370,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       type="time"
                       value={localSettings.openingTime}
                       onChange={(e) => handleLocalChange('openingTime', e.target.value)}
-                      onBlur={() => handleBlurSave('openingTime')}
+                      onBlur={(e) => handleBlurSave('openingTime', e.target.value)}
                       className="rounded-lg"
                     />
                   </div>
@@ -442,7 +380,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       type="time"
                       value={localSettings.closingTime}
                       onChange={(e) => handleLocalChange('closingTime', e.target.value)}
-                      onBlur={() => handleBlurSave('closingTime')}
+                      onBlur={(e) => handleBlurSave('closingTime', e.target.value)}
                       className="rounded-lg"
                     />
                   </div>
@@ -457,23 +395,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     <Label>Número de Mesas</Label>
                     <Input
                       type="number"
-                      max={parseInt(restaurant?.max_mesas || '50')}
+                      max={parseInt(restaurant?.max_mesas || '100')}
                       value={localSettings.totalTables}
                       onChange={(e) => {
                         const val = e.target.value;
-                        if (val === '') {
-                          handleLocalChange('totalTables', 0);
-                          return;
-                        }
-                        const value = parseInt(val);
-                        const maxTables = parseInt(restaurant?.max_mesas || '50');
-                        handleLocalChange('totalTables', Math.min(Math.max(0, value), maxTables));
+                        const value = val === '' ? 0 : parseInt(val);
+                        handleLocalChange('totalTables', value);
                       }}
-                      onBlur={() => handleBlurSave('totalTables')}
-                      className="w-32 h-10 rounded-lg"
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value) || 0;
+                        const max = parseInt(restaurant?.max_mesas || '100');
+                        const finalVal = Math.min(Math.max(0, val), max);
+                        handleLocalChange('totalTables', finalVal);
+                        updateAndSaveSetting({ quantidade_mesas: finalVal.toString() });
+                      }}
+                      className="w-32 h-10 rounded-lg text-center font-bold text-lg"
                     />
                     <p className="text-sm text-muted-foreground">
-                      Máximo contratado: {restaurant?.max_mesas || '50'} mesas
+                      Máximo contratado: {restaurant?.max_mesas || '---'} mesas
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -482,7 +421,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       type="time"
                       value={localSettings.kitchenClosingTime || localSettings.closingTime}
                       onChange={(e) => handleLocalChange('kitchenClosingTime', e.target.value)}
-                      onBlur={() => handleBlurSave('kitchenClosingTime')}
+                      onBlur={(e) => handleBlurSave('kitchenClosingTime', e.target.value)}
                       className="w-32 h-10 rounded-lg"
                     />
                     <p className="text-sm text-warning flex items-center gap-1">
@@ -500,7 +439,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   </div>
                   <Switch
                     checked={settings.autoCloseTable}
-                    onCheckedChange={(checked) => handleUpdateOperationSetting({ autoCloseTable: checked })}
+                    onCheckedChange={(checked) => updateAndSaveSetting({ fechar_mesa_auto: checked })}
                   />
                 </div>
               </div>
@@ -523,7 +462,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     </div>
                     <Switch
                       checked={settings.flashingEnabled}
-                      onCheckedChange={(checked) => handleUpdateOperationSetting({ flashingEnabled: checked })}
+                      onCheckedChange={(checked) => updateAndSaveSetting({ alertas_piscantes: checked })}
                     />
                   </div>
                   <div className="flex items-center justify-between p-4 bg-card rounded-lg border border-border">
@@ -544,7 +483,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     </div>
                     <Switch
                       checked={settings.soundEnabled}
-                      onCheckedChange={(checked) => handleUpdateOperationSetting({ soundEnabled: checked })}
+                      onCheckedChange={(checked) => updateAndSaveSetting({ sons_habilitados: checked })}
                     />
                   </div>
                 </div>
@@ -563,9 +502,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         id="auto-print"
                         checked={settings.autoPrintEnabled}
                         onCheckedChange={(checked) => {
-                          handleUpdateOperationSetting({ autoPrintEnabled: checked });
-                          // Força o salvamento imediato no banco de dados para evitar "bate-volta" do switch
-                          setTimeout(() => saveSettingsToSupabase(), 100);
+                          updateAndSaveSetting({ impressao_auto: checked });
                         }}
                       />
                     </div>
