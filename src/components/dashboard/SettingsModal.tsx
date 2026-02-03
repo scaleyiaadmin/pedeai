@@ -3,7 +3,8 @@ import {
   X, Settings2, Package, Warehouse, Users, CreditCard, Printer,
   Plus, Search, Edit2, Trash2, Save, MessageSquare, Send, Calendar,
   TrendingUp, TrendingDown, RotateCcw, AlertTriangle, Check, Clock,
-  Phone, Mail, Tag, Gift, Volume2, VolumeX, Wifi, WifiOff, Loader2
+  Phone, Mail, Tag, Gift, Volume2, VolumeX, Wifi, WifiOff, Loader2,
+  Bell, AlertCircle, Store, Zap
 } from 'lucide-react';
 import { useApp, Product, Customer, Campaign } from '@/contexts/AppContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
