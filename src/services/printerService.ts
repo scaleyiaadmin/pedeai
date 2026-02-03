@@ -18,6 +18,13 @@ const RAWBT_URL = 'http://localhost:40213/print';
 
 // --- WEB BLUETOOTH API SUPPORT (NATIVO DO CHROME) ---
 
+/**
+ * Retorna o nome do dispositivo Bluetooth conectado (se houver)
+ */
+export const getConnectedDeviceName = (): string | null => {
+  return bluetoothDevice ? (bluetoothDevice.name || 'Impressora Bluetooth') : null;
+};
+
 // Tipagem "any" para evitar erros de build já que a API é experimental e não está no TS padrão
 let bluetoothDevice: any | null = null;
 let printCharacteristic: any | null = null;

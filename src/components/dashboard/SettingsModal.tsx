@@ -21,7 +21,8 @@ import {
   printToRawBT,
   printViaDeepLink,
   connectBluetoothPrinter,
-  printViaWebBluetooth
+  printViaWebBluetooth,
+  getConnectedDeviceName
 } from '@/services/printerService';
 
 const PRODUCT_CATEGORIES = [
@@ -551,6 +552,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                     Impressoras
                   </h3>
                   <div className="flex gap-2">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-secondary rounded-full border border-border">
+                      <Label htmlFor="auto-print" className="text-xs font-medium cursor-pointer">Impressão Automática</Label>
+                      <Switch
+                        id="auto-print"
+                        checked={settings.autoPrintEnabled}
+                        onCheckedChange={(checked) => handleUpdateOperationSetting({ autoPrintEnabled: checked })}
+                      />
+                    </div>
                     <Button variant="outline" size="sm" className="gap-2">
                       <Plus className="w-4 h-4" />
                       Adicionar
@@ -579,6 +588,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 <div className="space-y-2">
+                  {getConnectedDeviceName() ? (
+                    <div className="flex items-center justify-between p-3 bg-green-500/5 rounded-lg border border-green-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded-full bg-success animate-pulse" />
+                        <div>
+                          <p className="font-medium text-foreground">{getConnectedDeviceName()}</p>
+                          <p className="text-sm text-muted-foreground text-success">Conectado via Web Bluetooth</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline">Recibo/Nativo</Badge>
+                    </div>
+                  ) : settings.printers.length === 0 ? (
+                    <div className="text-center py-6 border border-dashed border-border rounded-lg">
+                      <Printer className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+                      <p className="text-sm text-muted-foreground">Nenhuma impressora ativa.</p>
+                      <p className="text-xs text-muted-foreground">Conecte uma impressora Bluetooth acima.</p>
+                    </div>
+                  ) : null}
+
                   {settings.printers.map((printer) => (
                     <div key={printer.id} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
                       <div className="flex items-center gap-3">

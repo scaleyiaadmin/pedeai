@@ -8,6 +8,7 @@ import { useMensagens } from '@/hooks/useMensagens';
 import { validateLoginInput } from '@/lib/auth-validation';
 import { toast } from 'sonner';
 import { printOrder } from '@/lib/print-utils';
+import { printViaWebBluetooth } from '@/services/printerService';
 
 export interface Product {
   id: string;
@@ -113,6 +114,7 @@ interface AppSettings {
   serviceFee: number;
   whatsappNumber: string;
   printers: Printer[];
+  autoPrintEnabled: boolean;
 }
 
 interface AuthResult {
@@ -171,11 +173,7 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const initialPrinters: Printer[] = [
-  { id: '1', name: 'Impressora Bar', type: 'bar', ipAddress: '192.168.1.100', isActive: true },
-  { id: '2', name: 'Impressora Cozinha', type: 'kitchen', ipAddress: '192.168.1.101', isActive: true },
-  { id: '3', name: 'Impressora Caixa', type: 'receipt', ipAddress: '192.168.1.102', isActive: true },
-];
+const initialPrinters: Printer[] = [];
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [restaurantId, setRestaurantId] = useState<string | null>(() => {
@@ -205,6 +203,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     serviceFee: 10,
     whatsappNumber: '',
     printers: initialPrinters,
+    autoPrintEnabled: false,
   });
 
   // Empty initial states - no mock data
@@ -289,6 +288,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         soundEnabled: restaurant.sons_habilitados ?? true,
         lowStockAlert: restaurant.alerta_estoque_baixo ?? 15,
         criticalStockAlert: restaurant.alerta_estoque_critico ?? 5,
+        autoPrintEnabled: restaurant.impressao_auto ?? false,
       }));
     }
   }, [restaurant]);
@@ -355,6 +355,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       })
     );
   }, [pedidos]);
+
+  // --- LOGICA DE IMPRESSÃO AUTOMÁTICA ---
+  const printedOrdersRef = React.useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!settings.autoPrintEnabled) return;
+
+    // Filtra pedidos pendentes que ainda não foram impressos nesta sessão
+    const newPendingOrders = pedidos.filter(p =>
+      p.status === 'pendente' && !printedOrdersRef.current.has(p.id)
+    );
+
+    if (newPendingOrders.length > 0) {
+      console.log(`[AutoPrint] Detectados ${newPendingOrders.length} novos pedidos.`);
+
+      newPendingOrders.forEach(async (pedido) => {
+        // Marcamos como impresso ANTES para evitar duplicidade em re-renders rápidos
+        printedOrdersRef.current.add(pedido.id);
+
+        console.log(`[AutoPrint] Imprimindo pedido #${pedido.id}...`);
+        const success = await printViaWebBluetooth(pedido, settings.restaurantName);
+
+        if (success) {
+          toast.success(`Pedido #${pedido.id} impresso automaticamente!`);
+        } else {
+          console.warn(`[AutoPrint] Falha ao imprimir pedido #${pedido.id}. Certifique-se que a impressora está conectada.`);
+        }
+      });
+    }
+  }, [pedidos, settings.autoPrintEnabled, settings.restaurantName]);
+  // --------------------------------------
 
   const generateTables = useCallback((count: number): Table[] => {
     return Array.from({ length: count }, (_, i) => ({
@@ -481,6 +512,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           sons_habilitados: settings.soundEnabled,
           alerta_estoque_baixo: settings.lowStockAlert,
           alerta_estoque_critico: settings.criticalStockAlert,
+          impressao_auto: settings.autoPrintEnabled,
         })
         .eq('id', restaurantId);
 
@@ -873,6 +905,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     loadingPedidos,
     requestBill,
     mensagens: mensagensData,
+    refetchUsuarios,
   }), [
     isAuthenticated,
     isAdminAuthenticated,

@@ -15,6 +15,7 @@ export interface Restaurant {
   sons_habilitados: boolean | null;
   alerta_estoque_baixo: number | null;
   alerta_estoque_critico: number | null;
+  impressao_auto: boolean | null;
   created_at: string;
 }
 
