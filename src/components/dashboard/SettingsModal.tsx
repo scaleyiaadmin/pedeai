@@ -427,7 +427,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         <div className="relative">
                           <Input
                             type="number"
-                            max={parseInt(restaurant?.max_mesas || '100')}
+                            max={parseInt(restaurant?.quantidade_max_mesas || '50')}
                             value={localSettings.totalTables}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -436,7 +436,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                             }}
                             onBlur={(e) => {
                               const val = parseInt(e.target.value) || 0;
-                              const max = parseInt(restaurant?.max_mesas || '100');
+                              const max = parseInt(restaurant?.quantidade_max_mesas || '50');
                               const finalVal = Math.min(Math.max(0, val), max);
                               handleLocalChange('totalTables', finalVal);
                               updateAndSaveSetting({ quantidade_mesas: finalVal.toString() });
@@ -447,13 +447,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
                         <div className="flex flex-col justify-center">
                           <p className="text-sm font-medium text-foreground">
-                            Até <span className="text-primary font-bold">{restaurant?.max_mesas || '50'}</span> contratadas
+                            Até <span className="text-primary font-bold">{restaurant?.quantidade_max_mesas || '50'}</span> contratadas
                           </p>
                           <div className="w-32 h-2 bg-secondary rounded-full mt-2 overflow-hidden border border-border">
                             <div
                               className="h-full bg-primary transition-all duration-500 ease-out"
                               style={{
-                                width: `${Math.min(100, (localSettings.totalTables / parseInt(restaurant?.max_mesas || '50')) * 100)}%`
+                                width: `${Math.min(100, (localSettings.totalTables / parseInt(restaurant?.quantidade_max_mesas || '50')) * 100)}%`
                               }}
                             />
                           </div>

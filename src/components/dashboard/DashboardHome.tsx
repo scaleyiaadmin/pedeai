@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
   TrendingUp, DollarSign, ShoppingBag, Users,
   ArrowUpRight, ArrowDownRight, Package, Inbox
@@ -16,13 +16,47 @@ const DashboardHome: React.FC = () => {
     stockMovements,
     restaurantId,
     pedidos,
-    dailyMetrics,
+    // dailyMetrics, // REMOVED
+    getMetrics,   // ADDED
     loadingPedidos: loading
   } = useApp();
 
+  const [dateFilter, setDateFilter] = React.useState<'today' | 'yesterday' | 'week' | 'month'>('today');
+  const [dateRange, setDateRange] = React.useState<{ start: Date; end: Date }>({
+    start: new Date(),
+    end: new Date()
+  });
+
+  // Update date range when filter changes
+  React.useEffect(() => {
+    const now = new Date();
+    let start = new Date();
+    let end = new Date();
+
+    switch (dateFilter) {
+      case 'today':
+        start = new Date();
+        end = new Date();
+        break;
+      case 'yesterday':
+        start.setDate(now.getDate() - 1);
+        end.setDate(now.getDate() - 1);
+        break;
+      case 'week':
+        start.setDate(now.getDate() - 7);
+        end = new Date();
+        break;
+      case 'month':
+        start.setDate(now.getDate() - 30);
+        end = new Date();
+        break;
+    }
+    setDateRange({ start, end });
+  }, [dateFilter]);
+
   // Calculate metrics from Supabase data
   const metrics = useMemo(() => {
-    const stats = dailyMetrics();
+    const stats = getMetrics(dateRange.start, dateRange.end);
 
     const occupiedTables = tables.filter(t => t.status === 'occupied').length;
 
@@ -35,7 +69,7 @@ const DashboardHome: React.FC = () => {
       totalOrders: stats.totalOrders,
       totalCustomers: customers.length,
     };
-  }, [dailyMetrics, tables, customers]);
+  }, [getMetrics, tables, customers, dateRange]);
 
   // Recent stock movements
   const recentMovements = stockMovements.slice(0, 5);
@@ -56,10 +90,38 @@ const DashboardHome: React.FC = () => {
   return (
     <div className="flex-1 p-8 overflow-y-auto bg-background animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="w-full space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Resumo do dia</p>
+        {/* Header and Filters */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground">Resumo do período</p>
+          </div>
+          <div className="flex gap-2 bg-secondary/30 p-1 rounded-lg">
+            <button
+              onClick={() => setDateFilter('today')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${dateFilter === 'today' ? 'bg-white shadow text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Hoje
+            </button>
+            <button
+              onClick={() => setDateFilter('yesterday')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${dateFilter === 'yesterday' ? 'bg-white shadow text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Ontem
+            </button>
+            <button
+              onClick={() => setDateFilter('week')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${dateFilter === 'week' ? 'bg-white shadow text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              7 Dias
+            </button>
+            <button
+              onClick={() => setDateFilter('month')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${dateFilter === 'month' ? 'bg-white shadow text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              30 Dias
+            </button>
+          </div>
         </div>
 
         {/* Metric Cards */}

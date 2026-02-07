@@ -166,7 +166,13 @@ interface AppContextType {
   pedidos: ParsedPedido[];
   updatePedidoStatus: (pedidoId: number, status: string) => Promise<{ error: string | null }>;
   deletePedido: (pedidoId: number) => Promise<{ error: string | null }>;
-  dailyMetrics: () => { totalSales: number; pendingOrders: number; topProducts: any[]; totalOrders: number };
+  // Metrics
+  getMetrics: (startDate?: Date, endDate?: Date) => {
+    totalSales: number;
+    pendingOrders: number;
+    topProducts: any[];
+    totalOrders: number;
+  };
   loadingPedidos: boolean;
   requestBill: (tableId: number) => Promise<void>;
   mensagens: any;
@@ -223,7 +229,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const { restaurant, updateRestaurant, refetch: refetchRestaurant } = useRestaurant(restaurantId);
   const {
     pedidos,
-    dailyMetrics,
+    getMetrics,
     loading: loadingPedidos,
     updatePedidoStatus,
     deletePedido,
@@ -744,25 +750,45 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCampaigns(prev => prev.filter(c => c.id !== id));
   }, []);
 
-  const addOrder = useCallback(async (tableId: number, items: OrderItem[], station: 'bar' | 'kitchen') => {
+  const addOrder = useCallback(async (tableId: number, items: OrderItem[], station: 'bar' | 'kitchen', customerName?: string, customerPhone?: string) => {
     if (!restaurantId) {
       console.error('No restaurant ID available');
       return;
     }
 
+    // 1. Validate Stock
+    for (const item of items) {
+      const product = products.find(p => p.id === item.productId);
+      if (product) {
+        if ((product.stock || 0) < item.quantity) {
+          toast.error(`Estoque insuficiente para ${product.name}. Restam apenas ${product.stock}.`);
+          return;
+        }
+      }
+    }
+
     try {
       // Consolidate optional description (DB has a single `descricao` field)
-      const descricao = items
+      const itemsDesc = items
         .map(i => i.description?.toString().trim())
         .filter(Boolean)
-        .join(' | ')
-        .slice(0, 500);
+        .join(' | ');
+
+      // Prepend Customer Info if available (Persistência de Cliente)
+      let finalDesc = itemsDesc;
+      if (customerName || customerPhone) {
+        const clientInfo = `[Cliente: ${customerName || '?'} - ${customerPhone || '?'}]`;
+        finalDesc = finalDesc ? `${clientInfo} ${finalDesc}` : clientInfo;
+      }
+
+      const descricao = finalDesc.slice(0, 500);
 
       // Calculate subtotal
       const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-      // Get product names (comma separated if multiple)
-      const productNames = items.map(item => item.productName).join(', ');
+      // Get product names (repeat name N times for stock trigger to count correctly)
+      // Example: 2x Burger -> "Burger, Burger"
+      const productNames = items.flatMap(item => Array(item.quantity).fill(item.productName)).join(', ');
 
       // Get total quantity
       const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -806,6 +832,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const requestBill = useCallback(async (tableId: number) => {
     if (!restaurantId) return;
 
+    const table = tables.find(t => t.id === tableId);
+    if (!table) return;
+
     try {
       // Optimistic update
       setTables(prev => prev.map(t => t.id === tableId ? { ...t, alert: 'bill' } : t));
@@ -815,13 +844,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         .from('Pedidos')
         .update({ status: 'pagamento_pendente' })
         .eq('restaurante_id', restaurantId)
-        .eq('mesa', tableId.toString());
+        .eq('mesa', tableId.toString())
+        .neq('status', 'fechado'); // Don't reopen closed orders
 
       if (error) throw error;
 
-      toast.info(`Imprimindo conta da mesa ${tableId}...`, {
-        icon: '🖨️',
-      });
+      // --- AUTO PRINT BILL LOGIC ---
+      if (table.consumption && table.consumption.length > 0) {
+        const total = table.consumption.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+        const billData: any = { // Using any to match PrintOrderData without strict type conflicts if any
+          id: `F${tableId}-${new Date().getHours()}${new Date().getMinutes()}`,
+          mesa: tableId,
+          created_at: new Date(),
+          itens: table.consumption.map(i => ({
+            nome: i.productName,
+            quantidade: i.quantity,
+            preco: i.price
+          })),
+          total: total,
+          descricao: 'Fechamento de Conta'
+        };
+
+        toast.info(`Imprimindo conta da mesa ${tableId}...`, {
+          icon: '🖨️',
+        });
+
+        // Fire and forget print (don't block UI)
+        printViaWebBluetooth(billData, settings.restaurantName).then(success => {
+          if (!success) {
+            console.warn('Falha na impressão automática da conta. Verifique a conexão.');
+          }
+        });
+      } else {
+        toast.info(`Solicitação enviada (Mesa ${tableId} sem consumo registrado).`);
+      }
+      // -----------------------------
 
       // Silent refetch to sync
       refetchPedidos({ silent: true });
@@ -829,7 +887,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.error('Error requesting bill:', err);
       toast.error('Erro ao solicitar conta');
     }
-  }, [restaurantId, refetchPedidos]);
+  }, [restaurantId, tables, settings.restaurantName, refetchPedidos]);
 
   const deliverOrder = useCallback((orderId: string) => {
     const order = orders.find(o => o.id === orderId);
@@ -877,10 +935,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       // Mudar status para 'fechado' em vez de deletar para manter histórico.
       if (restaurantId) {
-        updateTablePedidosStatus(tableId, 'fechado');
+        // Await the update to ensure DB is in sync before local state clearing might be reverted by realtime
+        updateTablePedidosStatus(tableId, 'fechado').then(() => {
+          // Refetch to confirm
+          refetchPedidos({ silent: true });
+        });
       }
     }
-  }, [tables, restaurantId]);
+  }, [tables, restaurantId, updateTablePedidosStatus, refetchPedidos]);
 
   const addItemToTable = useCallback(async (tableId: number, item: OrderItem) => {
     const product = products.find(p => p.id === item.productId);
@@ -959,7 +1021,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     pedidos,
     updatePedidoStatus,
     deletePedido,
-    dailyMetrics,
+    getMetrics,
     loadingPedidos,
     requestBill,
     mensagens: mensagensData,
@@ -1008,7 +1070,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     pedidos,
     updatePedidoStatus,
     deletePedido,
-    dailyMetrics,
+    getMetrics,
     loadingPedidos,
     requestBill,
     mensagensData,

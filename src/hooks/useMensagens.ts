@@ -89,7 +89,7 @@ export const useMensagens = (allowedContacts: { phone: string, name: string }[] 
                 const chatName = dbContact?.name || chat.wa_name || chat.name || chat.Lead_fullName || 'Contato';
 
                 const mappedChat: UazapiChat = {
-                    id: chat.id, // Guardamos o ID original para a API
+                    id: chat.id, // Reverting to internal ID which is consistent with msg.chatId
                     phone: canonical,
                     name: chatName,
                     lastMessage: extractContent(chat.wa_lastMessageTextVote || chat.wa_lastMessageSender || chat.last_message),
@@ -115,7 +115,8 @@ export const useMensagens = (allowedContacts: { phone: string, name: string }[] 
         }
     }, [hookId, allowedContacts]);
 
-    const fetchMessages = useCallback(async (chatId: string) => {
+    // Atualizado para aceitar chatJid opcional para filtro preciso
+    const fetchMessages = useCallback(async (chatId: string, chatJid?: string) => {
         try {
             const response = await fetch(`${UAZAPI_URL}/message/find`, {
                 method: 'POST',
@@ -124,7 +125,7 @@ export const useMensagens = (allowedContacts: { phone: string, name: string }[] 
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    where: { chatId: chatId, remoteJid: chatId }
+                    where: { chatId: chatId } // Mantém query pelo ID interno
                 })
             });
 
@@ -133,11 +134,21 @@ export const useMensagens = (allowedContacts: { phone: string, name: string }[] 
             const data = await response.json();
             const rawMessages = Array.isArray(data.messages) ? data.messages : (Array.isArray(data) ? data : []);
 
-            // Filtro de mensagens continua usando o chatId (ID de lead) ou o JID
-            const lowerTarget = chatId.toLowerCase();
+            // Filtro de mensagens ESTRITO e ROBUSTO
+            const targetId = String(chatId);
+            const targetJid = String(chatJid || '').toLowerCase(); // Use JID if provided
+
             const filteredMessages = rawMessages.filter((msg: any) => {
-                const mId = String(msg.chatId || msg.remoteJid || msg.key?.remoteJid || '').toLowerCase();
-                return mId.includes(lowerTarget) || lowerTarget.includes(mId);
+                // Check 1: Strict ID match (if msg has chatId)
+                if (msg.chatId && String(msg.chatId) === targetId) return true;
+
+                // Check 2: Strict JID match (if msg has remoteJid)
+                const msgJid = String(msg.remoteJid || msg.key?.remoteJid || '').toLowerCase();
+                if (targetJid && msgJid && msgJid === targetJid) return true;
+
+                // Check 3: Fallback loose check only if NO other match found? No, loose checks caused bugs.
+                // If strict checks fail, assume not a match.
+                return false;
             });
 
             return filteredMessages.map((msg: any) => ({

@@ -89,6 +89,9 @@ const ConversationsView: React.FC = () => {
     setSelectedChatId(chatId);
     setLoadingMessages(true);
 
+    const chat = chats.find((c: UazapiChat) => c.id === chatId);
+    if (!chat) return;
+
     if (typeof fetchMessages !== 'function') {
       console.error('[ConversationsView] fetchMessages is not a function!');
       setLoadingMessages(false);
@@ -96,8 +99,9 @@ const ConversationsView: React.FC = () => {
     }
 
     try {
-      const msgs = await fetchMessages(chatId);
-      console.log(`[ConversationsView] Received ${msgs?.length || 0} messages for ${chatId}`);
+      // Pass both ID (for backend query) and JID (for client filtering)
+      const msgs = await fetchMessages(chat.id, chat.jid);
+      console.log(`[ConversationsView] Received ${msgs?.length || 0} messages for ${chat.id} (${chat.jid})`);
       setCurrentMessages(Array.isArray(msgs) ? msgs : []);
     } catch (error) {
       console.error('[ConversationsView] Error fetching messages:', error);

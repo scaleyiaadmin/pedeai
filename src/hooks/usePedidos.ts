@@ -67,12 +67,26 @@ const parsePedido = (pedido: Pedido): ParsedPedido => {
   // Calculate unit price
   const unitPrice = quantity > 0 ? total / quantity : 0;
 
-  // Create items array for backward compatibility
-  const itens = productName ? [{
-    nome: productName,
-    quantidade: quantity,
-    preco: unitPrice
-  }] : [];
+  // Parse items from comma-separated string (e.g. "Burger, Burger, Coke")
+  const rawItems = productName ? productName.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+  // Group items by name to calculate quantity per item
+  const itemCounts: Record<string, number> = {};
+  rawItems.forEach(name => {
+    itemCounts[name] = (itemCounts[name] || 0) + 1;
+  });
+
+  // Create structured items array
+  const itens = Object.entries(itemCounts).map(([nome, qtd]) => ({
+    nome,
+    quantidade: qtd,
+    preco: unitPrice // Note: This assumes all items have same unit price which is an approximation
+  }));
+
+  // Reconstruct a cleaner product name string for display (e.g. "2x Burger, 1x Coke")
+  const displayProductName = Object.entries(itemCounts)
+    .map(([nome, qtd]) => qtd > 1 ? `${qtd}x ${nome}` : nome)
+    .join(', ');
 
   return {
     id: pedido.id,
@@ -231,23 +245,25 @@ export const usePedidos = (restaurantId: string | null, onInsert?: (pedido: Pars
     }
   }, [restaurantId, fetchPedidos]);
 
-  // Calculate daily metrics
-  const dailyMetrics = useCallback(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  // Calculate metrics for a specific date range
+  const getMetrics = useCallback((startDate?: Date, endDate?: Date) => {
+    const start = startDate ? new Date(startDate) : new Date();
+    start.setHours(0, 0, 0, 0);
 
-    const todaysPedidos = pedidos.filter(p => {
+    const end = endDate ? new Date(endDate) : new Date();
+    end.setHours(23, 59, 59, 999);
+
+    const filteredPedidos = pedidos.filter(p => {
       const pedidoDate = new Date(p.created_at);
-      pedidoDate.setHours(0, 0, 0, 0);
-      return pedidoDate.getTime() === today.getTime();
+      return pedidoDate >= start && pedidoDate <= end;
     });
 
-    const totalSales = todaysPedidos.reduce((sum, p) => sum + p.total, 0);
-    const pendingOrders = pedidos.filter(p => p.status === 'pendente').length;
+    const totalSales = filteredPedidos.reduce((sum, p) => sum + p.total, 0);
+    const pendingOrders = pedidos.filter(p => p.status === 'pendente').length; // Keep global pending count
 
     // Product sales count
     const productSales: Record<string, { name: string; quantity: number; revenue: number }> = {};
-    todaysPedidos.forEach(pedido => {
+    filteredPedidos.forEach(pedido => {
       pedido.itens.forEach(item => {
         const key = item.nome;
         if (!productSales[key]) {
@@ -266,7 +282,7 @@ export const usePedidos = (restaurantId: string | null, onInsert?: (pedido: Pars
       totalSales,
       pendingOrders,
       topProducts,
-      totalOrders: todaysPedidos.length,
+      totalOrders: filteredPedidos.length,
     };
   }, [pedidos]);
 
@@ -278,6 +294,6 @@ export const usePedidos = (restaurantId: string | null, onInsert?: (pedido: Pars
     deletePedido,
     updateTablePedidosStatus,
     refetch: fetchPedidos,
-    dailyMetrics,
+    getMetrics,
   };
 };
